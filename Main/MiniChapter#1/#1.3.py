@@ -49,3 +49,4 @@ print("\nFirst 10 labels:", mixed["label"].head(10).tolist())
 First 10: [1, 1, 0, 0, 1, 1, 1, 0, 1, 1]
 """
 
+#mixed.to_csv('mixed_train_300k#.csv', index=False)

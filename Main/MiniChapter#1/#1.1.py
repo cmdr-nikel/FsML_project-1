@@ -1,3 +1,5 @@
+#initial Imports and Analysis
+
 import pandas as pd
 
 #Loading
@@ -6,6 +8,7 @@ import pandas as pd
 mb = pd.read_csv('mercedes-benz 300k.txt', header=None, names=['article'], encoding='utf-8')
 not_mb = pd.read_csv('not mercedes-benz 300k.txt', header=None, names=['article'], encoding='utf-8')
 
+print("cleaning module")
 
 #Data Cleaning/Filtration
 """Kinda useless here, but i liked PfDS lectures so why not"""
@@ -31,4 +34,8 @@ print(mb.info())
 print(not_mb.info())
 
 
+
+"""Pattern research, even tho patter is technically known"""
+print("Length of MB ", mb['article'].str.len().value_counts().sort_index())
+print("Length of non-MB", not_mb['article'].str.len().value_counts().sort_index())
 

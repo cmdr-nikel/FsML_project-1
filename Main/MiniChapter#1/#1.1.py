@@ -39,3 +39,4 @@ print(not_mb.info())
 print("Length of MB ", mb['article'].str.len().value_counts().sort_index())
 print("Length of non-MB", not_mb['article'].str.len().value_counts().sort_index())
 
+#Forgot about normalisation article_clean = re.sub(r'\s+', '', article).upper() //(more or less)

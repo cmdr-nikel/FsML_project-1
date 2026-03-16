@@ -80,7 +80,7 @@ A1647201278
           78 \d{2} ← number of party $
 3.length?
 
-And at last it is somewhat like
+And at last it is somewhat likecvc
 df['pattern_type'] = np.select([
     df['article'].str.match('org_pattern'), 
     df['article'].str.match('es1_pattern'),

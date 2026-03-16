@@ -48,5 +48,33 @@ print("\nFirst 10 labels:", mixed["label"].head(10).tolist())
 
 First 10: [1, 1, 0, 0, 1, 1, 1, 0, 1, 1]
 """
-
 #mixed.to_csv('mixed_train_300k#.csv', index=False)
+
+
+giga_mixed = pd.concat(
+    [mb.sample(n=150000, random_state=42),
+    not_mb.sample(n=150000, random_state=42)
+], ignore_index=True).sample(frac=1).reset_index(drop=True)
+
+
+print(giga_mixed.head(10))
+print("\nFirst 10 labels:",giga_mixed["label"].head(10).tolist())
+
+"""
+           article  label
+0      A2137207608      1
+1  A1675840207Z190      1
+2      16456PLEJ01      0
+3          1790339      0
+4  A16672002959H15      1
+5  A20576038009051      1
+6       820253QG09      0
+7      A1718301062      1
+8      A1786254800      1
+9          TJB1005      0
+
+First 10 labels: [1, 1, 0, 0, 1, 1, 0, 1, 1, 0]
+"""
+#not even sure i need random_state at this point
+
+#giga_mixed.to_csv('giga_mixed_train_600k.csv', index=False)

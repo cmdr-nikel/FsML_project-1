@@ -20,9 +20,8 @@ mb = mb[mb['article'].notna() & (mb['article'] != '')]
 not_mb = not_mb[not_mb['article'].notna() & (not_mb['article'] != '')]
 
 
-#Папа чуть перекинул на лишний десяток в Мерседес, лол
-"""Taking close look on what we have inside (as if I cant open .txt myself)"""
 
+#Taking close look on what we have inside (as if I cant open .txt myself)
 print(f"Mercedes: {len(mb)} articles")
 print(f"Не-Mercedes: {len(not_mb)} articles")
 

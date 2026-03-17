@@ -1,6 +1,8 @@
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, classification_report
+from Util import predict_brand
+import joblib
 import pandas as pd
 
 from Util import load_files
@@ -33,14 +35,17 @@ X_val, X_test, y_val, y_test = train_test_split(
 model = LogisticRegression(max_iter=1000, random_state=42)
 model.fit(X_train, y_train)
 
+#saving model
+joblib.dump(model, "mercedes_model.pkl")
+
 # hard predictions + evaluation
 pred_val = model.predict(X_val)
 print(f"Val accuracy: {accuracy_score(y_val, pred_val):.3f}")
 print(classification_report(y_val, pred_val))
 
 # soft probabilities + three decision zones
-threshold_high = 0.90
-threshold_low  = 0.50
+threshold_high = 0.95
+threshold_low  = 0.40
 
 probs_val = model.predict_proba(X_val)[:, 1]  # P(Mercedes) for each article
 
@@ -48,6 +53,15 @@ print(f"\nMercedes      (>= 0.90): {(probs_val >= threshold_high).sum()}")
 print(f"Manual review (0.50-0.90): {((probs_val > threshold_low) & (probs_val < threshold_high)).sum()}")
 print(f"Not Mercedes  (<= 0.50): {(probs_val <= threshold_low).sum()}")
 
+
+#calling the report-file function with saved model
+model = joblib.load("mercedes_model.pkl")
+
+result = predict_brand(
+    csv_input_path="giga_mixed_train_600k.csv",  # ← реальный файл
+    model=model,
+    output_path="labeled_report.csv"
+)
 
 
 
@@ -86,7 +100,6 @@ print(X_non_mb["prefix_is_mb_set"].sum())
 """
 
 """
-#weight of a features(why 1.00 on training)
 feature_names = X_train.columns.tolist()
 coefs = model.coef_[0]
 
@@ -131,3 +144,24 @@ suffix_letters         -0.47  ← буквы в конце = немного пр
 article_len            -0.47  ← длинная строка = немного против MB (???)
 """
 
+
+#latest out poot
+"""Val accuracy: 1.000
+              precision    recall  f1-score   support
+
+           0       1.00      1.00      1.00     30000
+           1       1.00      1.00      1.00     30000
+
+    accuracy                           1.00     60000
+   macro avg       1.00      1.00      1.00     60000
+weighted avg       1.00      1.00      1.00     60000
+
+
+Mercedes      (>= 0.90): 30004
+Manual review (0.50-0.90): 2
+Not Mercedes  (<= 0.50): 29994
+Processed300000 lines - labeled_report.csv
+decision
+mercedes         150029
+not_mercedes     149969
+manual_review         2"""

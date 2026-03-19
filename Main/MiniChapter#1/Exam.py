@@ -18,7 +18,6 @@ df.to_csv("fathers_file_fixed.csv", index=False)
 print(f'Lines after format fix: {len(df)}')
 print(df.head())
 
-df.to_csv("1M_parts_numbers.csv", index = True) #saving 'new' file
 
 model = joblib.load("mercedes_model.pkl")
 result = predict_brand(

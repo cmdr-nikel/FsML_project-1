@@ -1,70 +1,70 @@
-# FsML_project — классификация артикулов Mercedes-Benz
+# FsML_project — Mercedes-Benz part number classification
 
-Проект по машинному обучению: бинарная классификация номеров запчастей — **Mercedes-Benz** (1) или **не Mercedes** (0). Используются правила на основе формата артикула, инженерия признаков из строки и логистическая регрессия.
+A machine learning project for **binary classification** of automotive part numbers: **Mercedes-Benz** (1) vs **non-Mercedes** (0). It combines format-based rules, string feature engineering, and logistic regression.
 
-## Структура репозитория
+## Repository layout
 
-| Путь | Назначение |
-|------|------------|
-| `Main/Phase#1/` | Основной пайплайн: данные, обучение, инференс |
-| `Main/Phase#2/Scripts/` | Вариант с модулями: `features_scr/atomar.py`, `models_scr/inference.py`, `data_scr/loads.py` |
+| Path | Purpose |
+|------|---------|
+| `Main/Phase#1/` | Main pipeline: data, training, inference |
+| `Main/Phase#2/Scripts/` | Modular layout: `features_scr/atomar.py`, `models_scr/inference.py`, `data_scr/loads.py` |
 
-## Зависимости
+## Dependencies
 
 - Python 3  
 - `pandas`, `scikit-learn`, `joblib`  
-- Для `Converter.py`: запись в Excel (обычно `openpyxl` или `xlsxwriter`)
+- For `Converter.py`: Excel export (typically `openpyxl` or `xlsxwriter`)
 
-Рекомендуется создать виртуальное окружение и установить пакеты вручную, например:
+Use a virtual environment and install packages as needed, for example:
 
 ```bash
 pip install pandas scikit-learn joblib openpyxl
 ```
 
-## Данные (ожидаемые файлы)
+## Data files (expected)
 
-Скрипты рассчитывают на файлы **в текущей рабочей директории** при запуске (часто это сама папка `Phase#1`):
+Scripts assume files live in the **current working directory** when you run them (often the `Phase#1` folder itself):
 
-- `mercedes-benz 300k.txt` — позитивный класс (по одному артикулу в строке, колонка без заголовка).  
-- `not mercedes-benz 300k.txt` — негативный класс.  
-- `mixed_train_300k.csv` — смешанная выборка с колонками `article`, `label` (в репозитории есть пример).  
-- `giga_mixed_train_600k.csv` — расширенная смешанная выборка (создаётся скриптом `#1.3.py`, если раскомментировать сохранение).
+- `mercedes-benz 300k.txt` — positive class (one part number per line, no header).  
+- `not mercedes-benz 300k.txt` — negative class.  
+- `mixed_train_300k.csv` — mixed dataset with `article` and `label` columns (a sample exists in the repo).  
+- `giga_mixed_train_600k.csv` — larger mixed dataset (produced by `#1.3.py` if you uncomment the save step).
 
-Для экзаменационного сценария: `1M_parts_numbers.csv` → исправленный CSV и отчёт с предсказаниями.
+For the “exam” flow: `1M_parts_numbers.csv` → normalized CSV and a predictions report.
 
-## Фаза 1 — сценарии по файлам
+## Phase 1 — scripts
 
-1. **`#1.1.py`** — загрузка двух `.txt`, очистка, разведочный анализ (длины строк и т.д.).  
-2. **`#1.2.py`** — **правило-based** проверка: regex под известные шаблоны MB (`[ABNC]` + 10 цифр и варианты с суффиксами). Оценка доли совпадений по MB и не-MB.  
-3. **`#1.3.py`** — формирование сбалансированных выборок (например 75k+75k и 150k+150k), перемешивание, опциональный экспорт в CSV.  
-4. **`#1.4.py`** — простейшая модель: одна признак — длина строки + `LogisticRegression` (черновик перед полным набором фич).  
-5. **`#1.5 [polygon].py`** — полный цикл: матрица признаков из `Util.build_feature_matrix`, обучение на крупной выборке, сохранение **`mercedes_model.pkl`**, валидация, пороги уверенности, вызов **`predict_brand`** для разметки CSV.  
-6. **`Exam.py`** — загрузка большого CSV артикулов, нормализация через пересохранение, инференс сохранённой моделью, отчёт `1M_labeled_report.csv` и статистика по решениям.  
-7. **`Util.py`** — загрузка датасетов, **`extract_features_from_article`** / **`build_feature_matrix`** (длина, буквы/цифры, префиксы MB, разбор «ядра» из 10 цифр, суффиксы и т.д.), **`predict_brand`** — вероятности, пороги «mercedes / not_mercedes / manual_review», экспорт отчёта.  
-8. **`Converter.py`** — перенос размеченного отчёта из CSV в Excel с нумерованным индексом.
+1. **`#1.1.py`** — load both `.txt` files, clean, exploratory analysis (string lengths, etc.).  
+2. **`#1.2.py`** — **rule-based** check: regexes for known MB patterns (`[ABNC]` + 10 digits and suffix variants). Reports match rates for MB vs non-MB.  
+3. **`#1.3.py`** — build balanced samples (e.g. 75k+75k and 150k+150k), shuffle, optional CSV export.  
+4. **`#1.4.py`** — minimal model: single feature — string length + `LogisticRegression` (draft before the full feature set).  
+5. **`#1.5 [polygon].py`** — full loop: feature matrix from `Util.build_feature_matrix`, train on a large sample, save **`mercedes_model.pkl`**, validation, confidence thresholds, **`predict_brand`** to label a CSV.  
+6. **`Exam.py`** — load a large part-number CSV, normalize by re-saving, run the saved model, write `1M_labeled_report.csv` and print decision stats.  
+7. **`Util.py`** — dataset loaders, **`extract_features_from_article`** / **`build_feature_matrix`** (length, letter/digit counts, MB prefixes, 10-digit “core” parsing, suffixes, etc.), **`predict_brand`** — probabilities, `mercedes` / `not_mercedes` / `manual_review` thresholds, report export.  
+8. **`Converter.py`** — move the labeled report from CSV to Excel with a numbered index.
 
-## Признаки (кратко)
+## Features (summary)
 
-Из строки артикула извлекаются числовые и бинарные признаки: длина, число букв/цифр, признаки первого символа (в т.ч. префиксы `A/B/N/C`), длина буквенного префикса и хвоста, совпадение с regex «ядра» из 10 цифр, при совпадении — разбор на model/group/version/revision, флаг «возможно усечённый MB» без буквы перед цифрами и др.
+Numeric and binary features are derived from each article string: length, letter/digit counts, first-character flags (including `A`/`B`/`N`/`C` prefixes), leading letter run and trailing letters/digits, match against a 10-digit core regex, and when it matches — model / group / version / revision fields, plus a “possibly truncated MB” flag (no letter before digits), and more.
 
-## Инференс (Phase 2)
+## Inference (Phase 2)
 
-`Main/Phase#2/Scripts/models_scr/inference.py` задаёт класс **`BrandPredictor`**: пакетный и одиночный предсказания, мультиклассовая форма API (`predict_proba`, `classes_`). Импорт фич: `from features_scr.atomar import ...` — пути должны совпадать с запуском из каталога `Scripts` (или настроен `PYTHONPATH`).
+`Main/Phase#2/Scripts/models_scr/inference.py` defines **`BrandPredictor`**: single-row and batch prediction, multiclass-style API (`predict_proba`, `classes_`). Feature import: `from features_scr.atomar import ...` — run from the `Scripts` directory or set `PYTHONPATH` accordingly.
 
-**Замечание:** в `BrandPredictor.predict_one` используется `self.model.classes` — для `sklearn` обычно нужно `classes_`; при ошибках стоит проверить это имя атрибута.
+**Note:** `BrandPredictor.predict_one` uses `self.model.classes`; in scikit-learn the attribute is usually `classes_` — change it if you hit attribute errors.
 
-## Типичный порядок работы
+## Typical workflow
 
-1. Положить исходные `.txt` в рабочую папку, при необходимости сгенерировать `mixed_train_300k.csv` / `giga_mixed_train_600k.csv` через `#1.3.py`.  
-2. Запустить `#1.5 [polygon].py` из каталога с данными — получить `mercedes_model.pkl` и при необходимости `labeled_report.csv`.  
-3. Для массовой разметки нового файла — по аналогии с `Exam.py`: `joblib.load("mercedes_model.pkl")` и `predict_brand(...)`.
+1. Place the source `.txt` files in the working folder; generate `mixed_train_300k.csv` / `giga_mixed_train_600k.csv` with `#1.3.py` if needed.  
+2. Run `#1.5 [polygon].py` from the data directory to obtain `mercedes_model.pkl` and optionally `labeled_report.csv`.  
+3. To label a new file in bulk, follow `Exam.py`: `joblib.load("mercedes_model.pkl")` and `predict_brand(...)`.
 
-## Артефакты
+## Artifacts
 
-- `mercedes_model.pkl` — обученная модель.  
-- `labeled_report.csv`, `1M_labeled_report.csv` — входные артикулы + `prob_mercedes`, `decision`, текстовые `label`.  
-- `1M_labeled_report_fixed.xlsx` — после `Converter.py`.
+- `mercedes_model.pkl` — trained model.  
+- `labeled_report.csv`, `1M_labeled_report.csv` — input articles plus `prob_mercedes`, `decision`, text `label`.  
+- `1M_labeled_report_fixed.xlsx` — after `Converter.py`.
 
 ---
 
-Проект учебный/исследовательский: пути к файлам захардкожены относительно каталога запуска; перед запуском убедитесь, что рабочая директория и имена файлов совпадают со скриптами.
+This is a teaching/research project: file paths are hardcoded relative to the process working directory — confirm your cwd and filenames match the scripts before running.

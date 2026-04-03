@@ -1,6 +1,6 @@
 metric,value
 rows_total,999999.0
-manual_check_rows,60983.0
-manual_check_pct,6.0983
-rows_ge_0.98,868397.0
-rows_ge_0.99,853637.0
+manual_check_rows,7401.0
+manual_check_pct,0.7401
+rows_ge_0.98,68084.0
+rows_ge_0.99,26307.0

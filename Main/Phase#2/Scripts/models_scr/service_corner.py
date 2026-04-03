@@ -1,108 +1,3 @@
-import pandas as pd
-import os
-
-_BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-labeled_path = os.path.join(_BASE, "Data", "processed", "1M_parts_numbers_labeled.csv")
-
-df = pd.read_csv(labeled_path, dtype=str)
-
-print(df['label'].value_counts())
-print(df[df['label'] == 'manual_check'].sample(20).to_string())
-
-mc = df[df['label'] == 'manual_check'][['mb_prob','bmw_prob','vag_prob']].astype(float)
-print(mc.describe())
-
-print(os.getcwd())
-print(os.listdir())
-
-import os, json
-import pandas as pd
-import plotly.express as px
-
-_BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-
-candidates = [
-    os.path.join(_BASE, "Data", "processed", "1M_parts_numbers_labeled.csv"),
-    os.path.join(_BASE, "1M_parts_numbers_labeled.csv"),
-    os.path.join(_BASE, "Data", "processed", "labeled_report.csv"),
-    os.path.join(_BASE, "labeled_report.csv"),
-]
-
-labeled_path = next((p for p in candidates if os.path.exists(p)), None)
-if labeled_path is None:
-    raise FileNotFoundError("Could not find labeled CSV in expected locations")
-
-outdir = os.path.join(_BASE, "output")
-os.makedirs(outdir, exist_ok=True)
-
-df = pd.read_csv(labeled_path, dtype=str)
-for c in ["mb_prob", "bmw_prob", "vag_prob"]:
-    df[c] = df[c].astype(float)
-
-df["max_prob"] = df[["mb_prob", "bmw_prob", "vag_prob"]].max(axis=1)
-
-bins = [0, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.97, 0.98, 0.99, 1.000001]
-labels = ["0-0.5", "0.5-0.6", "0.6-0.7", "0.7-0.8", "0.8-0.9", "0.9-0.95", "0.95-0.97", "0.97-0.98", "0.98-0.99", "0.99-1.0"]
-df["prob_bin"] = pd.cut(df["max_prob"], bins=bins, labels=labels, include_lowest=True, right=False)
-
-hist = df["prob_bin"].value_counts().reindex(labels).reset_index()
-hist.columns = ["prob_bin", "count"]
-hist["pct"] = (hist["count"] / len(df) * 100).round(4)
-hist.to_csv(os.path.join(outdir, "max_prob_histogram.csv"), index=False)
-
-fig = px.bar(hist, x="prob_bin", y="count", text="count")
-fig.update_traces(texttemplate="%{text:,}", textposition="outside", cliponaxis=False)
-fig.update_layout(
-    title="Max probability distribution (1M rows)<br><span style='font-size: 18px; font-weight: normal;'>Source: labeled CSV | confidence concentration</span>"
-)
-fig.update_xaxes(title_text="Prob bin")
-fig.update_yaxes(title_text="Count")
-fig.write_image(os.path.join(outdir, "max_prob_histogram.png"))
-with open(os.path.join(outdir, "max_prob_histogram.png.meta.json"), "w") as f:
-    json.dump(
-        {
-            "caption": "Max probability distribution (1M rows)",
-            "description": "Bar chart of the maximum class probability across all labeled rows.",
-        },
-        f,
-    )
-
-mc = df[df["label"] == "manual_check"].copy()
-top100 = mc["article"].astype(str).value_counts().head(100).reset_index()
-top100.columns = ["article", "count"]
-top100.to_csv(os.path.join(outdir, "manual_check_top100.csv"), index=False)
-
-fig2 = px.bar(top100.sort_values("count", ascending=True), x="count", y="article", orientation="h")
-fig2.update_layout(
-    title="Top manual_check articles (top 100)<br><span style='font-size: 18px; font-weight: normal;'>Source: labeled CSV | repeated ambiguous patterns</span>"
-)
-fig2.update_xaxes(title_text="Count")
-fig2.update_yaxes(title_text="Article")
-fig2.write_image(os.path.join(outdir, "manual_check_top100.png"))
-with open(os.path.join(outdir, "manual_check_top100.png.meta.json"), "w") as f:
-    json.dump(
-        {
-            "caption": "Top manual_check articles (top 100)",
-            "description": "Horizontal bar chart showing the most frequent articles sent to manual review.",
-        },
-        f,
-    )
-
-summary = pd.DataFrame(
-    [
-        ["rows_total", len(df)],
-        ["manual_check_rows", len(mc)],
-        ["manual_check_pct", round(len(mc) / len(df) * 100, 4)],
-        ["rows_ge_0.98", int((df["max_prob"] >= 0.98).sum())],
-        ["rows_ge_0.99", int((df["max_prob"] >= 0.99).sum())],
-    ],
-    columns=["metric", "value"],
-)
-summary.to_csv(os.path.join(outdir, "confidence_summary.csv"), index=False)
-
-print(f"Loaded: {labeled_path}")
-print(hist.to_string(index=False))
-print(top100.head(10).to_string(index=False))
 
 
 #FOR 0.95 THRESHOLD
@@ -310,4 +205,94 @@ article  count
 | 0.85  | 62,142       | 6.2%    | 0.57                    | Better labeled_report.csv                            |
 | 0.80  | 60,983       | 6.1%    | 0.58                    | automatisation stopped here, so 0.85 might be better | (IDK)
 0.7 -- 6.07%
+"""
+
+"""
+label
+unknown_article    693974
+vag                242346
+bmw                 38573
+mercedes            22150
+manual_check         2956
+Name: count, dtype: int64
+                     article         label mb_prob bmw_prob vag_prob                        comment
+600071       236031384311200  manual_check     0.0     0.27     0.73  low confidence, review needed
+245314       316300374301110  manual_check     0.0     0.25     0.75  low confidence, review needed
+148102       211201001368008  manual_check     0.0     0.25     0.75  low confidence, review needed
+884081  42000374100160230002  manual_check     0.0     0.49     0.51  low confidence, review needed
+652198       236020350207000  manual_check     0.0     0.27     0.73  low confidence, review needed
+325232     30015048746000020  manual_check     0.0     0.43     0.57  low confidence, review needed
+667839       210800101200508  manual_check     0.0     0.23     0.77  low confidence, review needed
+382422       111801041082008  manual_check     0.0     0.23     0.77  low confidence, review needed
+916715     15095060110951001  manual_check     0.0     0.41     0.59  low confidence, review needed
+637511       600200382900000  manual_check     0.0     0.26     0.74  low confidence, review needed
+27128        121210000401999  manual_check     0.0     0.26     0.74  low confidence, review needed
+759433       040524100040001  manual_check     0.0     0.25     0.75  low confidence, review needed
+421042       316200290604400  manual_check     0.0     0.26     0.74  low confidence, review needed
+656227       000010011983738  manual_check     0.0     0.26     0.74  low confidence, review needed
+129093       111114600501999  manual_check     0.0     0.26     0.74  low confidence, review needed
+878546       316300840326111  manual_check     0.0     0.25     0.75  low confidence, review needed
+878530       316300110919200  manual_check     0.0     0.25     0.75  low confidence, review needed
+814810       316300340805000  manual_check     0.0     0.25     0.75  low confidence, review needed
+442336       210802901056008  manual_check     0.0     0.24     0.76  low confidence, review needed
+533007       000010060443219  manual_check     0.0     0.26     0.74  low confidence, review needed
+       mb_prob     bmw_prob     vag_prob
+count   2956.0  2956.000000  2956.000000
+mean       0.0     0.264516     0.735477
+std        0.0     0.039639     0.039638
+min        0.0     0.230000     0.500000
+25%        0.0     0.250000     0.740000
+50%        0.0     0.260000     0.740000
+75%        0.0     0.260000     0.750000
+max        0.0     0.500000     0.770000
+/Users/nikitadackov/PycharmProjects/FsML_project-1/Main/Phase#2/Scripts/models_scr
+['predictor.py', 'service_corner.py', '__init__.py', 'unsuprv.py', 'classic.py', 'inference.py']
+Loaded: /Users/nikitadackov/PycharmProjects/FsML_project-1/Main/Phase#2/Data/processed/1M_parts_numbers_labeled.csv
+ prob_bin  count     pct
+    0-0.5      0  0.0000
+  0.5-0.6     87  0.0087
+  0.6-0.7     76  0.0076
+  0.7-0.8   2793  0.2793
+  0.8-0.9  11201  1.1201
+ 0.9-0.95   5203  0.5203
+0.95-0.97   4872  0.4872
+0.97-0.98     28  0.0028
+0.98-0.99    134  0.0134
+ 0.99-1.0 281631 28.1631
+        article  count
+212302201012060      4
+402613170107003      4
+330202120100840      4
+040600101200600      3
+316006110908000      3
+220695220301010      3
+642263502136010      3
+000010061050118      2
+000010061041118      2
+040520370700810      2
+Loaded: /Users/nikitadackov/PycharmProjects/FsML_project-1/Main/Phase#2/Data/processed/1M_parts_numbers_labeled.csv
+ prob_bin  count     pct
+    0-0.5      0  0.0000
+  0.5-0.6     87  0.0087
+  0.6-0.7     76  0.0076
+  0.7-0.8   2793  0.2793
+  0.8-0.9  11201  1.1201
+ 0.9-0.95   5203  0.5203
+0.95-0.97   4872  0.4872
+0.97-0.98     28  0.0028
+0.98-0.99    134  0.0134
+ 0.99-1.0 281631 28.1631
+        article  count
+212302201012060      4
+402613170107003      4
+330202120100840      4
+040600101200600      3
+316006110908000      3
+220695220301010      3
+642263502136010      3
+000010061050118      2
+000010061041118      2
+040520370700810      2
+
+Process finished with exit code 0
 """

@@ -1,10 +1,15 @@
 import re
 import pandas as pd
+import numpy as np
 
 """
 'constructor' for the form of atomic features:
 length, start/end structure, core, prefix, whether truncated, etc.
+#actially, it is by far more complicated rn
 """
+
+def featurize_column(article):
+    features = {}
 
 # --list of constants-- #
 BMW_RE = re.compile(
@@ -30,6 +35,10 @@ CORE_RE = re.compile(
 
 NON_MB_PREFIXES = set("XZMLDJESTKVW")
 
+VAG_PLATFORMS = {
+    '02E', '06A', '06F', '1K0', '1K1', '1K2', '2K1', '5K0', '5Q0',
+    '8K0', '8R0', '8V0', '5C0', '06H', '06J', '1K8'
+}
 
 def _extract_generic_features(s):
     f = {}
@@ -90,6 +99,8 @@ def _extract_mb_features(s):
         f["core_len"]             = 0
         f["mb_suffix_len"]        = 0
 
+    f["mb_is_valid_pattern"] = f["matches_mb_core"]
+
     return f
 
 def _extract_bmw_features(s):
@@ -98,6 +109,8 @@ def _extract_bmw_features(s):
     f["bmw_all_digits"]   = 1 if s.isdigit() else 0
     f["bmw_len"]          = len(s)
     f["bmw_is_11_digits"] = 1 if (s.isdigit() and len(s) == 11) else 0
+
+    f["bmw_no_letters"]   = 1 if s.isdigit() else 0
 
     m = BMW_RE.match(s)
     if m:
@@ -116,24 +129,25 @@ def _extract_bmw_features(s):
 
 def _extract_vag_features(s):
     f = {}
-
-    f["vag_len"]      = len(s)
+    f["vag_len"] = len(s)
     f["vag_is_alnum"] = 1 if s.isalnum() else 0
 
     m = VAG_RE.match(s)
     if m:
-        group    = m.group("group")
+        group = m.group("group")
         revision = m.group("revision")
+        platform = m.group("platform")
 
         f["vag_three_blocks_match"] = 1
-        f["vag_platform_code"]      = m.group("platform")
-        f["vag_main_group_digit"]   = int(group[0])
-        f["vag_subgroup_digits"]    = int(group[1:])
-        f["vag_item_number"]        = int(m.group("item"))
-        f["vag_revision_suffix"]    = revision
-        f["vag_has_revision"]       = 1 if revision else 0
-        f["vag_revision_len"]       = len(revision)
-        f["vag_is_valid_pattern"]   = 1
+        f["vag_platform_code"] = platform
+        f["vag_main_group_digit"] = int(group[0])
+        f["vag_subgroup_digits"] = int(group[1:])
+        f["vag_item_number"] = int(m.group("item"))
+        f["vag_revision_suffix"] = revision
+        f["vag_has_revision"] = 1 if revision else 0
+        f["vag_revision_len"] = len(revision)
+        f["vag_platform_valid"] = 1 if platform in VAG_PLATFORMS else 0
+        f["vag_is_valid_pattern"] = 1 if f["vag_platform_valid"] else 0
     else:
         f["vag_three_blocks_match"] = 0
         f["vag_platform_code"]      = ""
@@ -147,10 +161,79 @@ def _extract_vag_features(s):
 
     return f
 
+#NEW BLOCK TO INCREASE ACCURACY
+def _extract_pk_features(s: str) -> dict:
+    f = {}
+    f["contains_pk"] = 1 if "PK" in s else 0
+    f["starts_with_pk_number"] = 1 if re.match(r"^\d+PK\d+$", s) else 0
+
+    m = re.match(r"^(?P<n>\d+)PK(?P<rest>\d+)$", s)
+    if m:
+        f["pk_prefix_len"] = len(m.group("n"))
+        f["pk_suffix_len"] = len(m.group("rest"))
+        f["pk_num"] = int(m.group("n"))
+        f["pk_rest_num"] = int(m.group("rest"))
+    else:
+        f["pk_prefix_len"] = 0
+        f["pk_suffix_len"] = 0
+        f["pk_num"] = -1
+        f["pk_rest_num"] = -1
+
+    f["pk_is_valid_pattern"] = f["starts_with_pk_number"]
+
+    return f
+
+def featurize_prefix(article):
+    return {
+        'prefix_316': int(article.startswith('316')),
+        'prefix_210': int(article.startswith('210')),
+        'prefix_236': int(article.startswith('236')),  # MB
+        'prefix_len3_unique': len(set(article[:3])) == 1
+    }
+
+def featurize_complexity(article):
+    length = len(article)
+    digit_ratio = np.mean([c.isdigit() for c in article])
+    return {
+        'len_bucket': np.digitize(length, [8, 10, 12, 15, 20]),
+        'digit_ratio': digit_ratio,
+        'entropy': -np.sum([p*np.log2(p+1e-10) for p in np.unique(list(article), return_counts=True)[1]/len(article)])
+    }
+
+def _extract_gates_features(s: str) -> dict:
+    """15-значные числовые — Gates/Dayco/ContiTech"""
+    f = {}
+    f["gates_is_15_digits"] = 1 if re.match(r'^\d{15}$', s) else 0
+    f["gates_is_valid_pattern"] = f["gates_is_15_digits"]
+    return f
+
+
+def _extract_045_features(s: str) -> dict:
+    """045*-серия — Hella/Febi"""
+    f = {}
+    f["hella_is_045"] = 1 if re.match(r'^045\d{9,12}$', s) else 0
+    f["hella_is_valid_pattern"] = f["hella_is_045"]
+    return f
+
+
+def _extract_316_features(s: str) -> dict:
+    """316*-серия — Lemförder/Febi"""
+    f = {}
+    f["lemforder_is_316"] = 1 if re.match(r'^316\d{9,12}$', s) else 0
+    f["lemforder_is_valid_pattern"] = f["lemforder_is_316"]
+    return f
+
+
+def _extract_0000100_features(s: str) -> dict:
+    """0000100*-серия — Bosch OEM"""
+    f = {}
+    f["bosch_oem"] = 1 if re.match(r'^0000100\d{6,8}$', s) else 0
+    f["bosch_is_valid_pattern"] = f["bosch_oem"]
+    return f
 
 def extract_features(s: str) -> dict:
     """
-    Orchestrator — main entry point.
+    Orchestrator - main entry point.
     Runs all feature extractions for a single article string,
     applies conflict resolution, then computes cross-brand summary.
     Returns a flat dictionary ready for a DataFrame row.
@@ -160,6 +243,13 @@ def extract_features(s: str) -> dict:
     f.update(_extract_mb_features(s))
     f.update(_extract_bmw_features(s))
     f.update(_extract_vag_features(s))
+    f.update(_extract_pk_features(s))
+    f.update(_extract_gates_features(s))
+    f.update(_extract_045_features(s))
+    f.update(_extract_316_features(s))
+    f.update(_extract_0000100_features(s))
+
+
 
     # --- conflict resolution FIRST ---
     # MB articles (single letter prefix + 10 digits) must not be misclassified as VAG.
@@ -169,46 +259,26 @@ def extract_features(s: str) -> dict:
         f["vag_is_valid_pattern"]   = 0
         f["vag_three_blocks_match"] = 0
 
-    # --- cross-brand summary AFTER conflict resolution --- #
-    f["any_known_pattern"] = 1 if any([
-        f.get("matches_mb_core", 0),
-        f.get("bmw_is_valid_pattern", 0),
-        f.get("vag_is_valid_pattern", 0),
-    ]) else 0
+    if f.get("gates_is_valid_pattern", 0):
+        f["bmw_is_valid_pattern"] = 0
 
-    f["num_matched_patterns"] = sum([
-        f.get("matches_mb_core", 0),
-        f.get("bmw_is_valid_pattern", 0),
-        f.get("vag_is_valid_pattern", 0),
-    ])
+    if f.get("gates_is_15_digits", 0):
+        f["bmw_is_valid_pattern"] = 0
+
+    # --- cross-brand summary AFTER conflict resolution ---
+    valid_flags = [
+        int(val)
+        for key, val in f.items()
+        if key.endswith("_is_valid_pattern")
+    ]
+    f["any_known_pattern"] = 1 if any(valid_flags) else 0
+    f["num_matched_patterns"] = sum(valid_flags)
 
     # Drop string/categorical fields — model expects only numeric features
     f.pop("vag_platform_code", None)
     f.pop("vag_revision_suffix", None)
 
-#NEW BLOCK TO INCREASE ACCURACY
-    def _extract_pk_features(s):
-        f = {}
-
-        f["contains_pk"] = 1 if "PK" in s else 0
-        f["starts_with_pk_number"] = 1 if re.match(r"^\d+PK\d+$", s) else 0
-
-        m = re.match(r"^(?P<n>\d+)PK(?P<rest>\d+)$", s)
-        if m:
-            f["pk_prefix_len"] = len(m.group("n"))
-            f["pk_suffix_len"] = len(m.group("rest"))
-            f["pk_num"] = int(m.group("n"))
-            f["pk_rest_num"] = int(m.group("rest"))
-        else:
-            f["pk_prefix_len"] = 0
-            f["pk_suffix_len"] = 0
-            f["pk_num"] = -1
-            f["pk_rest_num"] = -1
-
-        return f
-
     return f
-
 
 def features_to_series(s: str) -> pd.Series:
     """Converts a single article string to a pd.Series of features."""

@@ -13,9 +13,14 @@ def featurize_column(article):
 
 # --list of constants-- #
 BMW_RE = re.compile(
-    r'^(?P<main_group>\d{2})'   # first 2 digits are numbers
-    r'(?P<subgroup>\d{2})'      # 3rd-4th are numbers
-    r'(?P<core7>\d{7})$'        # last 7 digits
+    r'^(?P<main_group>\d{2})'
+    r'(?P<subgroup>\d{2})'
+    r'(?P<core7>\d{7})$'
+)
+
+BMW_HEX_RE = re.compile(
+    r'^\d{4}5A[0-9A-F]{5}$',
+    re.IGNORECASE
 )
 
 VAG_RE = re.compile(
@@ -34,11 +39,6 @@ CORE_RE = re.compile(
 )
 
 NON_MB_PREFIXES = set("XZMLDJESTKVW")
-
-VAG_PLATFORMS = {
-    '02E', '06A', '06F', '1K0', '1K1', '1K2', '2K1', '5K0', '5Q0',
-    '8K0', '8R0', '8V0', '5C0', '06H', '06J', '1K8'
-}
 
 def _extract_generic_features(s):
     f = {}
@@ -103,58 +103,55 @@ def _extract_mb_features(s):
 
     return f
 
-def _extract_bmw_features(s):
+def _extract_bmw_features(s: str) -> dict:
+    s = str(s).strip()
     f = {}
 
-    f["bmw_all_digits"]   = 1 if s.isdigit() else 0
-    f["bmw_len"]          = len(s)
+    f["bmw_all_digits"] = 1 if s.isdigit() else 0
+    f["bmw_len"] = len(s)
     f["bmw_is_11_digits"] = 1 if (s.isdigit() and len(s) == 11) else 0
 
-    f["bmw_no_letters"]   = 1 if s.isdigit() else 0
-
+    hex_match = BMW_HEX_RE.match(s)
     m = BMW_RE.match(s)
+
+    f["bmw_is_hex_format"] = 1 if hex_match else 0
+
     if m:
-        f["bmw_main_group_int"]   = int(m.group("main_group"))
-        f["bmw_subgroup_int"]     = int(m.group("subgroup"))
-        f["bmw_core7_int"]        = int(m.group("core7"))
+        f["bmw_main_group_int"] = int(m.group("main_group"))
+        f["bmw_subgroup_int"] = int(m.group("subgroup"))
+        f["bmw_core7_int"] = int(m.group("core7"))
         f["bmw_is_valid_pattern"] = 1
     else:
-        f["bmw_main_group_int"]   = -1
-        f["bmw_subgroup_int"]     = -1
-        f["bmw_core7_int"]        = -1
-        f["bmw_is_valid_pattern"] = 0
+        f["bmw_main_group_int"] = -1
+        f["bmw_subgroup_int"] = -1
+        f["bmw_core7_int"] = -1
+        f["bmw_is_valid_pattern"] = 1 if hex_match else 0
 
     return f
 
 
 def _extract_vag_features(s):
     f = {}
-    f["vag_len"] = len(s)
+    f["vag_len"]     = len(s)
     f["vag_is_alnum"] = 1 if s.isalnum() else 0
 
     m = VAG_RE.match(s)
     if m:
-        group = m.group("group")
+        group    = m.group("group")
         revision = m.group("revision")
-        platform = m.group("platform")
 
         f["vag_three_blocks_match"] = 1
-        f["vag_platform_code"] = platform
-        f["vag_main_group_digit"] = int(group[0])
-        f["vag_subgroup_digits"] = int(group[1:])
-        f["vag_item_number"] = int(m.group("item"))
-        f["vag_revision_suffix"] = revision
-        f["vag_has_revision"] = 1 if revision else 0
-        f["vag_revision_len"] = len(revision)
-        f["vag_platform_valid"] = 1 if platform in VAG_PLATFORMS else 0
-        f["vag_is_valid_pattern"] = 1 if f["vag_platform_valid"] else 0
+        f["vag_main_group_digit"]   = int(group[0])
+        f["vag_subgroup_digits"]    = int(group[1:])
+        f["vag_item_number"]        = int(m.group("item"))
+        f["vag_has_revision"]       = 1 if revision else 0
+        f["vag_revision_len"]       = len(revision)
+        f["vag_is_valid_pattern"]   = 1
     else:
         f["vag_three_blocks_match"] = 0
-        f["vag_platform_code"]      = ""
         f["vag_main_group_digit"]   = -1
         f["vag_subgroup_digits"]    = -1
         f["vag_item_number"]        = -1
-        f["vag_revision_suffix"]    = ""
         f["vag_has_revision"]       = 0
         f["vag_revision_len"]       = 0
         f["vag_is_valid_pattern"]   = 0

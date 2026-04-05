@@ -4,7 +4,7 @@ import os
 import joblib
 from features_scr.atomar import extract_features_from_article, build_feature_matrix
 
-CONFIDENCE_THRESHOLD = 0.80
+CONFIDENCE_THRESHOLD = 0.85
 
 
 class BrandPredictor:

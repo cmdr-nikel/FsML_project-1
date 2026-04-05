@@ -296,3 +296,305 @@ Loaded: /Users/nikitadackov/PycharmProjects/FsML_project-1/Main/Phase#2/Data/pro
 
 Process finished with exit code 0
 """
+
+#####DO FIXA BMW
+"""
+Full dataset size: (900000, 2)
+brand
+bmw         300000
+mercedes    300000
+vag         300000
+Name: count, dtype: int64
+Filtering unknown articles by pattern...
+True unknowns after filter: 217,194
+Full dataset size after adding unknowns: (1117194, 2)
+brand
+bmw                300000
+mercedes           300000
+vag                300000
+unknown_article    217194
+Name: count, dtype: int64
+Train: 670316 | Val: 223439 | Test: 223439
+brand
+vag                180000
+bmw                180000
+mercedes           180000
+unknown_article    130316
+Name: count, dtype: int64
+
+Extracting features...
+Done. Shape: (670316, 51)
+No NaNs. Ready for scaling.
+Fixed shapes: (670316, 51) (223439, 51) (223439, 51)
+
+--- C tuning ---
+
+Training with C=0.01 (pre-validated)...
+Done.
+
+--- Val set results ---
+Accuracy: 0.9936537488979095
+Macro F1: 0.992995914882518
+
+Classification report:
+                 precision    recall  f1-score   support
+
+            bmw       1.00      0.98      0.99     60000
+       mercedes       1.00      1.00      1.00     60000
+unknown_article       0.97      1.00      0.98     43439
+            vag       1.00      1.00      1.00     60000
+
+       accuracy                           0.99    223439
+      macro avg       0.99      0.99      0.99    223439
+   weighted avg       0.99      0.99      0.99    223439
+
+
+Confusion matrix (MB / BMW / VAG):
+[[60000     0     0     0]
+ [    0 58935     0  1065]
+ [    0     3 59839   158]
+ [    0   192     0 43247]]
+
+--- TEST set results (final) ---
+Accuracy: 0.9933628417599434
+Macro F1: 0.9926743512954425
+
+Classification report:
+                 precision    recall  f1-score   support
+
+            bmw       1.00      0.98      0.99     60000
+       mercedes       1.00      1.00      1.00     60000
+unknown_article       0.97      1.00      0.98     43439
+            vag       1.00      1.00      1.00     60000
+
+       accuracy                           0.99    223439
+      macro avg       0.99      0.99      0.99    223439
+   weighted avg       0.99      0.99      0.99    223439
+
+
+Confusion matrix (MB / BMW / VAG / UNK):
+[[60000     0     0     0]
+ [    0 58875     0  1125]
+ [    0     0 59833   167]
+ [    0   191     0 43248]]
+
+Model saved → /Users/nikitadackov/PycharmProjects/FsML_project-1/Main/Phase#2/Models/linearcvs/linearsvc_atom_1117k_4cls.pkl
+Saved 51 features to /Users/nikitadackov/PycharmProjects/FsML_project-1/Main/Phase#2/Scripts/models_scr/../features_scr/feature_order.npy
+
+Process finished with exit code 0
+"""
+
+#MORE STATISTICS
+"""
+Classification report:
+precision recall f1-score support
+
+bmw 1.00 0.98 0.99 60000
+mercedes 1.00 1.00 1.00 60000
+unknown_article 0.97 1.00 0.98 43439
+vag 1.00 1.00 1.00 60000
+
+accuracy 0.99 223439
+macro avg 0.99 0.99 0.99 223439
+weighted avg 0.99 0.99 0.99 223439
+
+
+Confusion matrix (MB / BMW / VAG / UNK):
+[[60000 0 0 0]
+[ 0 58875 0 1125]
+[ 0 0 59833 167]
+[ 0 204 0 43235]]
+
+Model saved → /Users/nikitadackov/PycharmProjects/FsML_project-1/Main/Phase#2/Models/linearcvs/linearsvc_atom_1117k_4cls.pkl
+Saved 50 features to /Users/nikitadackov/PycharmProjects/FsML_project-1/Main/Phase#2/Scripts/models_scr/../features_scr/feature_order.npy
+
+=== LOST BMW ARTICLES ===
+Total lost: 1125
+
+First 2 digits distribution:
+article
+51 207
+61 152
+85 151
+65 102
+80 74
+36 64
+32 52
+66 50
+83 32
+11 26
+63 26
+62 25
+52 19
+34 17
+64 16
+Name: count, dtype: int64
+
+Length distribution:
+article
+11 1125
+Name: count, dtype: int64
+
+Sample (20):
+['34515A36BF1', '64125A4BA57', '54105A0C758', '24405A131F7', '80145A0A480', '85455A09F08', '65125A38AB8', '85455A2E1B6', '62105A2A3E0', '51215A0C771', '36115A276D4', '65825A12F52', '67625A3F285', '83305A40808', '85455A102A7', '65775A1FC42', '61315A25474', '66125A40695', '65125A318D8', '85455A17E06']
+
+Process finished with exit code 0
+"""
+
+#NOW
+
+"""
+Full dataset size: (900000, 2)
+brand
+bmw         300000
+mercedes    300000
+vag         300000
+Name: count, dtype: int64
+Filtering unknown articles by pattern...
+True unknowns after filter: 217,063
+Full dataset size after adding unknowns: (1117063, 2)
+brand
+bmw                300000
+vag                300000
+mercedes           300000
+unknown_article    217063
+Name: count, dtype: int64
+Train: 670237 | Val: 223413 | Test: 223413
+brand
+bmw                180000
+mercedes           180000
+vag                180000
+unknown_article    130237
+Name: count, dtype: int64
+
+Extracting features...
+Done. Shape: (670237, 51)
+No NaNs. Ready for scaling.
+Fixed shapes: (670237, 51) (223413, 51) (223413, 51)
+
+--- C tuning ---
+
+Training with C=0.01 (pre-validated)...
+Done.
+
+--- Val set results ---
+Accuracy: 0.9991898412357383
+Macro F1: 0.9991023939546126
+
+Classification report:
+                 precision    recall  f1-score   support
+
+            bmw       1.00      1.00      1.00     60000
+       mercedes       1.00      1.00      1.00     60000
+unknown_article       1.00      1.00      1.00     43413
+            vag       1.00      1.00      1.00     60000
+
+       accuracy                           1.00    223413
+      macro avg       1.00      1.00      1.00    223413
+   weighted avg       1.00      1.00      1.00    223413
+
+
+Confusion matrix (MB / BMW / VAG):
+[[60000     0     0     0]
+ [    0 59977     0    23]
+ [    0     0 59843   157]
+ [    0     0     1 43412]]
+
+--- TEST set results (final) ---
+Accuracy: 0.9992659334953651
+Macro F1: 0.9991881954567304
+
+Classification report:
+                 precision    recall  f1-score   support
+
+            bmw       1.00      1.00      1.00     60000
+       mercedes       1.00      1.00      1.00     60000
+unknown_article       1.00      1.00      1.00     43413
+            vag       1.00      1.00      1.00     60000
+
+       accuracy                           1.00    223413
+      macro avg       1.00      1.00      1.00    223413
+   weighted avg       1.00      1.00      1.00    223413
+
+
+Confusion matrix (MB / BMW / VAG / UNK):
+[[60000     0     0     0]
+ [    0 59985     0    15]
+ [    0     2 59851   147]
+ [    0     0     0 43413]]
+
+Model saved → /Users/nikitadackov/PycharmProjects/FsML_project-1/Main/Phase#2/Models/linearcvs/linearsvc_atom_1117k_4cls.pkl
+Saved 51 features to /Users/nikitadackov/PycharmProjects/FsML_project-1/Main/Phase#2/Scripts/models_scr/../features_scr/feature_order.npy
+Traceback (most recent call last):
+  File "/Users/nikitadackov/PycharmProjects/FsML_project-1/Main/Phase#2/Scripts/models_scr/classic.py", line 177, in <module>
+    main()
+  File "/Users/nikitadackov/PycharmProjects/FsML_project-1/Main/Phase#2/Scripts/models_scr/classic.py", line 174, in main
+    print(lost_articles.sample(20).tolist())
+          ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/envs/pythonProject/lib/python3.11/site-packages/pandas/core/generic.py", line 6000, in sample
+    sampled_indices = sample.sample(obj_len, size, replace, weights, rs)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/envs/pythonProject/lib/python3.11/site-packages/pandas/core/sample.py", line 161, in sample
+    return random_state.choice(obj_len, size=size, replace=replace, p=weights).astype(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "numpy/random/mtrand.pyx", line 1025, in numpy.random.mtrand.RandomState.choice
+ValueError: Cannot take a larger sample than population when 'replace=False'
+
+=== LOST BMW ARTICLES ===
+Total lost: 15
+
+First 2 digits distribution:
+article
+51    10
+52     1
+36     1
+65     1
+32     1
+64     1
+Name: count, dtype: int64
+
+Length distribution:
+article
+11    15
+Name: count, dtype: int64
+
+Sample (20):
+
+Process finished with exit code 1
+"""
+
+#PREDICTOR 0.7 (FORGOT TO SWITCH MODEL LOL)
+"""
+Model loaded: /Users/nikitadackov/PycharmProjects/FsML_project-1/Main/Phase#2/Models/linearcvs/linearsvc_atom_1184k_4cls.pkl
+Reading input file: /Users/nikitadackov/PycharmProjects/FsML_project-1/Main/Phase#2/Data/original/1M_parts_numbers.csv
+Loaded 999,999 rows
+Extracting features...
+Features shape: (999999, 51)
+Features fixed to model schema: (999999, 52)
+Running predictions...
+  vag                 138,629  (13.9%)
+  bmw                  41,481  (4.1%)
+  mercedes             22,150  (2.2%)
+  manual_check        103,133  (10.3%)
+  unknown_article     694,606  (69.5%)
+Saved → /Users/nikitadackov/PycharmProjects/FsML_project-1/Main/Phase#2/Data/processed/1M_parts_numbers_labeled.csv
+Total: 999,999 | manual_check: 103,133 | unknown_article: 694,606 | threshold: 0.7"""
+
+#PREDICTOR 0.85 MANUAL_CHECK IS DEAD (DEAR GOD)
+"""
+Model loaded: /Users/nikitadackov/PycharmProjects/FsML_project-1/Main/Phase#2/Models/linearcvs/linearsvc_atom_1117k_4cls.pkl
+Reading input file: /Users/nikitadackov/PycharmProjects/FsML_project-1/Main/Phase#2/Data/original/1M_parts_numbers.csv
+Loaded 999,999 rows
+Extracting features...
+Features shape: (999999, 51)
+Features fixed to model schema: (999999, 51)
+Running predictions...
+  vag                 245,302  (24.5%)
+  bmw                  39,182  (3.9%)
+  mercedes             22,150  (2.2%)
+  manual_check              0  (0.0%)
+  unknown_article     693,365  (69.3%)
+Saved → /Users/nikitadackov/PycharmProjects/FsML_project-1/Main/Phase#2/Data/processed/1M_parts_numbers_labeled.csv
+Total: 999,999 | manual_check: 0 | unknown_article: 693,365 | threshold: 0.85
+
+Process finished with exit code 0"""

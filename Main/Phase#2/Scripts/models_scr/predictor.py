@@ -11,10 +11,10 @@ from Scripts.features_scr.atomar import featurize_column
 # predict.py is at: Phase#2/Scripts/models_scr/predict.py
 _BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
-MODEL_PATH = os.path.join(_BASE, "Models", "linearcvs", "linearsvc_atom_1184k_4cls.pkl")
+MODEL_PATH = os.path.join(_BASE, "Models", "linearcvs", "linearsvc_atom_1117k_4cls.pkl")
 PROCESSED_DIR  = os.path.join(_BASE, "Data", "processed")
 
-CONFIDENCE_THRESHOLD = 0.7  # range 0.85-0.8 is ideal
+CONFIDENCE_THRESHOLD = 0.85  # range 0.85-0.8 is ideal
 
 
 def predict(input_path: str, output_path: str = None) -> pd.DataFrame:

@@ -156,6 +156,24 @@ def main():
     np.save(feature_order_path, np.array(feature_order, dtype=object))
     print(f"Saved {len(feature_order)} features to {feature_order_path}")
 
+    bmw_test_mask = (y_test == 'bmw')
+    lost_bmw_mask = bmw_test_mask & (y_test_pred == 'unknown_article')
+    lost_articles = X_test[lost_bmw_mask]
+
+    bmw_test_mask = (y_test == 'bmw')
+    lost_bmw_mask = bmw_test_mask & (y_test_pred == 'unknown_article')
+    lost_articles = X_test[lost_bmw_mask]
+
+    print("\n=== LOST BMW ARTICLES ===")
+    print(f"Total lost: {lost_bmw_mask.sum()}")
+    print("\nFirst 2 digits distribution:")
+    print(lost_articles.str[:2].value_counts().head(15))
+    print("\nLength distribution:")
+    print(lost_articles.str.len().value_counts())
+    print("\nSample (20):")
+    print(lost_articles.sample(20).tolist())
+
 if __name__ == "__main__":
     main()
+
 

@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 
+
 # --- PART 1: Paths ---
 # loads.py is at: Phase#2/Scripts/data_scr/loads.py
 # Going up two levels (.., ..) lands at Phase#2/
@@ -83,5 +84,39 @@ if __name__ == "__main__":
     print("Shape:", df.shape)
     print(df['brand'].value_counts())
     print(df.head(3))
+
+
+# --- PART 4: AutoLoader for topBFM ---
+def load_auto(data_dir: str) -> pd.DataFrame:
+    frames = []
+
+    for filename in os.listdir(data_dir):
+        ext = os.path.splitext(filename)[1]
+        brand = os.path.splitext(filename)[0].split()[0].lower()
+        path = os.path.join(data_dir, filename)
+
+        if ext == '.csv':
+            df = pd.read_csv(path, sep='\t', dtype=str)
+
+            if 'article' not in df.columns:
+                df = df.iloc[:, 1].to_frame(name='article')
+
+        elif ext == '.txt':
+            df = pd.read_csv(
+                path,
+                header=None,
+                names=['article'],
+                dtype=str
+            )
+        else:
+            continue
+
+        df['brand'] = brand
+
+        df['article'] = df['article'].str.upper().str.strip()
+
+        frames.append(df)
+
+    return pd.concat(frames, ignore_index=True)
 
 

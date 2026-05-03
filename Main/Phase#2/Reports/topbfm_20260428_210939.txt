@@ -1,0 +1,34 @@
+n_clusters: 400
+report:
+                 precision    recall  f1-score   support
+
+            bmw       0.94      0.72      0.82     90000
+       mercedes       0.95      0.86      0.90     90000
+unknown_article       0.00      0.00      0.00         0
+            vag       0.91      0.71      0.80     90000
+
+       accuracy                           0.77    270000
+      macro avg       0.70      0.57      0.63    270000
+   weighted avg       0.93      0.77      0.84    270000
+
+--- Auto: worst cluster 148 ---
+Art: 4E1910156AX, Brand: vag
+Art: 8E1910156X, Brand: vag
+Art: 5QE915684CN, Brand: vag
+Art: A2135015602, Brand: mercedes
+Art: 5QE915684CM, Brand: vag
+Art: 11157567802, Brand: bmw
+Art: 3Q0615611, Brand: vag
+Art: A21569002531A75, Brand: mercedes
+Art: 81722156509, Brand: bmw
+Art: 51757164156, Brand: bmw
+Art: A21568029391A31, Brand: mercedes
+Art: 65159135687, Brand: bmw
+Art: 000915686AM001, Brand: vag
+Art: 7M0615601A, Brand: vag
+Art: A21568037391A20, Brand: mercedes
+Art: 81612151566, Brand: bmw
+Art: 81722156495, Brand: bmw
+Art: 059115630BM, Brand: vag
+Art: 030115561AD, Brand: vag
+Art: A2156900539, Brand: mercedes

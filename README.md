@@ -218,10 +218,13 @@ Both models produce a labeled CSV with the same columns:
 
 ## Adding a New Brand
 
+Both models need to know about the new brand — they load data independently.
+
 1. Drop the brand dataset into `Data/original/`.
-2. Register it in `Scripts/data/loads.py` and `train_topbfm.py → load_data()`.
-3. Re-run `--full`.
-4. Optionally extend `Scripts/features/brand_rules.py` with brand-specific pattern rules.
+2. Register it in `Scripts/data/loads.py` → `load_all()` — this feeds **LinearSVC**.
+3. Register it in `Scripts/pipeline/train_topbfm.py` → `load_data()` — this feeds **TopBFM**.
+4. Re-run `--full`.
+5. Optionally extend `Scripts/features/brand_rules.py` with brand-specific pattern rules.
 
 The core embedding path is brand-agnostic by design — brand identity lives in the flag layer,
 not baked into the feature extractor.

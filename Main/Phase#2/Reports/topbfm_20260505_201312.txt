@@ -1,0 +1,12 @@
+n_clusters: 450
+report:
+                 precision    recall  f1-score   support
+
+            bmw       0.96      0.59      0.73    120000
+       mercedes       0.97      0.70      0.82    120000
+unknown_article       0.00      0.00      0.00         0
+            vag       0.95      0.65      0.77    120000
+
+       accuracy                           0.65    360000
+      macro avg       0.72      0.49      0.58    360000
+   weighted avg       0.96      0.65      0.77    360000

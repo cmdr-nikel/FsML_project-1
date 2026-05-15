@@ -1,0 +1,13 @@
+n_clusters: 550
+purity_threshold: 0.92
+report:
+                 precision    recall  f1-score   support
+
+            bmw       0.97      0.30      0.46    120000
+       mercedes       0.97      0.57      0.72    120000
+unknown_article       0.34      0.98      0.51    120000
+            vag       0.97      0.23      0.37    120000
+
+       accuracy                           0.52    480000
+      macro avg       0.81      0.52      0.51    480000
+   weighted avg       0.81      0.52      0.51    480000

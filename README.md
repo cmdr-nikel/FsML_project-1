@@ -1,8 +1,6 @@
 # FsML — Automotive Parts Brand Classifier
 ### Multi-brand Classification · LinearSVC × TopBFM · Teacher-Student Pipeline
 
-> *A machine learning pipeline that reads raw automotive part number strings and assigns each one a manufacturer brand — Mercedes-Benz, BMW, VAG, or unknown — across a corpus of one million articles, with no catalogue context and no barcode.*
-
 ---
 
 ## Overview
@@ -11,6 +9,8 @@ Automotive parts catalogues routinely contain millions of raw article numbers st
 The task: reconstruct brand identity from the part number string alone.
 
 The project runs in two phases. Phase#1 was a focused binary experiment. Phase#2 is the full system, built around two models that cooperate in sequence — one supervised and rule-anchored, one unsupervised and geometry-driven — connected through a teacher-student data pipeline inspired by work in Graph Signal Processing.
+
+> *A machine learning pipeline that reads raw automotive part number strings and assigns each one a manufacturer brand — Mercedes-Benz, BMW, VAG, or unknown — across a corpus of one million articles, with no catalogue context and no barcode.*
 
 ---
 

@@ -1,0 +1,18 @@
+n_clusters: 950
+purity_threshold: 0.8
+report:
+                 precision    recall  f1-score   support
+
+            bmw       0.92      0.97      0.94    120000
+          honda       0.94      0.25      0.39    120000
+   manual_check       0.00      0.00      0.00         0
+       mercedes       0.99      0.98      0.99    120000
+     mitsubishi       1.00      0.88      0.94     82595
+         nissan       0.92      0.20      0.33    120000
+         toyota       0.95      0.69      0.80    120000
+unknown_article       0.89      0.78      0.83    114742
+            vag       0.96      0.86      0.91    120000
+
+       accuracy                           0.69    917337
+      macro avg       0.84      0.62      0.68    917337
+   weighted avg       0.95      0.69      0.76    917337

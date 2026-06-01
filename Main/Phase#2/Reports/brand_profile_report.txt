@@ -1,0 +1,68 @@
+==============================================================================
+PER-BRAND SOURCE PROFILE — rule-firing & structure
+==============================================================================
+
+### BMW  (unique source ≈ 464,767, sampled 30,000)
+  fires OWN rule        :  98.2%
+  fires OWN only (clean):   0.0%
+  fires MULTIPLE rules  : 100.0%   <- collision risk
+  fires NO rule         :   0.0%   <- invisible → unknown
+  collides with         : honda:100.0%, nissan:100.0%, vag:98.2%
+  length  p10/p50/p90   : 11 / 11 / 11
+  top structures        : D11 (98%), D5L1D5 (0%), D5L1D2L1D2 (0%), D5L1D1L1D3 (0%)
+
+### MERCEDES  (unique source ≈ 300,000, sampled 30,000)
+  fires OWN rule        : 100.0%
+  fires OWN only (clean):   0.0%
+  fires MULTIPLE rules  : 100.0%   <- collision risk
+  fires NO rule         :   0.0%   <- invisible → unknown
+  collides with         : vag:100.0%, nissan:43.2%
+  length  p10/p50/p90   : 11 / 15 / 15
+  top structures        : L1D10 (43%), L1D11L1D2 (33%), L1D14 (10%), L1D10L1D3 (6%)
+
+### VAG  (unique source ≈ 675,665, sampled 30,000)
+  fires OWN rule        :  99.7%
+  fires OWN only (clean):  56.0%
+  fires MULTIPLE rules  :  43.7%   <- collision risk
+  fires NO rule         :   0.2%   <- invisible → unknown
+  collides with         : nissan:41.6%, honda:5.4%, mercedes:0.6%, toyota:0.2%
+  length  p10/p50/p90   : 9 / 11 / 14
+  top structures        : D1L1D7L1 (20%), D1L1D7L2 (8%), D1L1D7 (7%), D1L1D7L4 (7%)
+
+### TOYOTA  (unique source ≈ 419,151, sampled 30,000)
+  fires OWN rule        :  59.9%
+  fires OWN only (clean):   0.0%
+  fires MULTIPLE rules  :  85.9%   <- collision risk
+  fires NO rule         :   5.3%   <- invisible → unknown
+  collides with         : honda:84.6%, vag:70.0%, nissan:64.3%, mercedes:0.0%
+  length  p10/p50/p90   : 10 / 10 / 13
+  top structures        : D10 (47%), D10L1D1 (11%), D13 (9%), D6L1D3 (9%)
+
+### HONDA  (unique source ≈ 810,759, sampled 30,000)
+  fires OWN rule        :  88.8%
+  fires OWN only (clean):  21.4%
+  fires MULTIPLE rules  :  67.8%   <- collision risk
+  fires NO rule         :   5.6%   <- invisible → unknown
+  collides with         : nissan:64.6%, vag:12.2%, bmw:8.3%, toyota:2.2%
+  length  p10/p50/p90   : 11 / 11 / 13
+  top structures        : D5L2D4 (22%), D11 (8%), D5L2D1L1D2 (8%), D5L4D2 (8%)
+
+### NISSAN  (unique source ≈ 470,665, sampled 30,000)
+  fires OWN rule        :  85.4%
+  fires OWN only (clean):   6.4%
+  fires MULTIPLE rules  :  79.5%   <- collision risk
+  fires NO rule         :   7.5%   <- invisible → unknown
+  collides with         : honda:76.6%, vag:4.0%, mercedes:2.2%, toyota:1.9%
+  length  p10/p50/p90   : 9 / 10 / 10
+  top structures        : D7L1D2 (15%), D6L2D1L1 (13%), D6L1D3 (11%), D5L2D2L1 (10%)
+
+### MITSUBISHI  (unique source ≈ 206,487, sampled 30,000)
+  fires OWN rule        :  77.9%
+  fires OWN only (clean):  77.4%
+  fires MULTIPLE rules  :   1.4%   <- collision risk
+  fires NO rule         :   5.6%   <- invisible → unknown
+  collides with         : nissan:0.9%, mercedes:0.6%, honda:0.5%, vag:0.3%
+  length  p10/p50/p90   : 8 / 8 / 15
+  top structures        : L2D6 (73%), D15 (10%), D4L1D3 (5%), L1D7 (2%)
+
+Per-brand raw samples → Reports/profile_<brand>.csv

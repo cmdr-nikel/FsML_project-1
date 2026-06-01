@@ -1,0 +1,92 @@
+
+=== LinearSVC (teacher): label distribution (999,999 rows) ===
+label                    count      pct
+unknown_article        542,320   54.23%
+manual_check           139,505   13.95%
+toyota                  95,111    9.51%
+nissan                  54,919    5.49%
+vag                     50,618    5.06%
+bmw                     38,024    3.80%
+mitsubishi              29,636    2.96%
+honda                   27,888    2.79%
+mercedes                21,978    2.20%
+
+=== TopBFM (student): label distribution (999,999 rows) ===
+label                    count      pct
+unknown_article        431,356   43.14%
+manual_check           297,974   29.80%
+toyota                  83,392    8.34%
+vag                     73,654    7.37%
+bmw                     33,592    3.36%
+mercedes                28,998    2.90%
+mitsubishi              26,971    2.70%
+nissan                  15,477    1.55%
+honda                    8,585    0.86%
+
+=== joined on article: 1,384,547 rows ===
+exact label agreement: 61.26%
+
+=== honda: teacher labeled 180,724 rows (20,315 unique) → TopBFM verdict (unique) ===
+  manual_check          14,917   73.43%
+  honda                  2,934   14.44%  <-- agree
+  unknown_article        1,191    5.86%
+  nissan                   993    4.89%
+  toyota                   251    1.24%
+  vag                       25    0.12%
+  mitsubishi                 2    0.01%
+  bmw                        2    0.01%
+  -> 189 deduped sample rows → Reports/samples_honda_disagreements.csv
+
+=== nissan: teacher labeled 58,295 rows (53,543 unique) → TopBFM verdict (unique) ===
+  manual_check          39,481   73.74%
+  nissan                 7,647   14.28%  <-- agree
+  vag                    5,130    9.58%
+  honda                    874    1.63%
+  unknown_article          272    0.51%
+  toyota                   109    0.20%
+  bmw                       15    0.03%
+  mitsubishi                14    0.03%
+  mercedes                   1    0.00%
+  -> 230 deduped sample rows → Reports/samples_nissan_disagreements.csv
+
+=== TopBFM training-cluster analysis (1750 clusters) ===
+
+  honda: appears in 1221 clusters, 180,000 training articles
+    126,873 (70.5%) sit in clusters NOT labeled 'honda' (→ leak to that cluster's label)
+    training mass by host-cluster label:
+      manual_check       109,730   61.0%
+      honda               53,127   29.5%
+      bmw                 10,519    5.8%
+      toyota               2,232    1.2%
+      unknown_article      2,116    1.2%
+      nissan               1,649    0.9%
+      vag                    445    0.2%
+      mercedes               129    0.1%
+      mitsubishi              53    0.0%
+    top 5 clusters holding honda:
+        cid   n_honda    size  purity  host_label
+         66     1,870   3,656    0.51  manual_check
+        938     1,672   1,794    0.93  honda
+        736     1,519   1,954    0.78  manual_check
+        342     1,516   1,548    0.98  honda
+       1518     1,479   1,543    0.96  honda
+
+  nissan: appears in 1255 clusters, 180,000 training articles
+    132,548 (73.6%) sit in clusters NOT labeled 'nissan' (→ leak to that cluster's label)
+    training mass by host-cluster label:
+      manual_check       116,642   64.8%
+      nissan              47,452   26.4%
+      unknown_article      8,186    4.5%
+      toyota               3,469    1.9%
+      vag                  2,066    1.1%
+      honda                1,674    0.9%
+      mercedes               315    0.2%
+      mitsubishi             156    0.1%
+      bmw                     40    0.0%
+    top 5 clusters holding nissan:
+        cid  n_nissan    size  purity  host_label
+       1154     2,977   3,000    0.99  nissan
+        128     2,276   2,307    0.99  nissan
+        347     2,200   2,291    0.96  nissan
+       1158     1,679   2,272    0.74  manual_check
+          6     1,648   3,511    0.47  manual_check

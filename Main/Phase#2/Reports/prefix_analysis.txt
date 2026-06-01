@@ -1,0 +1,40 @@
+======================================================================
+5-CHAR PREFIX VOCABULARY per brand
+======================================================================
+  toyota      unique 5-prefixes:  13,496   (from 419,151 articles)
+  honda       unique 5-prefixes:  38,567   (from 810,759 articles)
+  nissan      unique 5-prefixes:  21,710   (from 470,665 articles)
+  mitsubishi  unique 5-prefixes:   6,778   (from 206,487 articles)
+  bmw         unique 5-prefixes:   4,225   (from 464,767 articles)
+  vag         unique 5-prefixes:  17,310   (from 675,665 articles)
+  mercedes    unique 5-prefixes:     346   (from 300,000 articles)
+
+======================================================================
+PREFIX OVERLAP — for the hard 10-digit-ish brands
+======================================================================
+
+  toyota: 13,496 prefixes | unique-to-toyota: 7,292 (54%) | shared: 6,204
+    articles covered by a toyota-UNIQUE prefix: 44.1%
+
+  nissan: 21,710 prefixes | unique-to-nissan: 14,040 (65%) | shared: 7,670
+    articles covered by a nissan-UNIQUE prefix: 48.2%
+
+  honda: 38,567 prefixes | unique-to-honda: 27,028 (70%) | shared: 11,539
+    articles covered by a honda-UNIQUE prefix: 54.2%
+
+======================================================================
+TOYOTA <-> NISSAN prefix collision (the 10-digit problem)
+======================================================================
+  shared 5-prefixes: 1,967
+  toyota articles whose prefix also exists in nissan: 20.8%
+  nissan articles whose prefix also exists in toyota: 11.8%
+
+======================================================================
+SEPARABILITY vs prefix length (toyota vs nissan unique-coverage)
+======================================================================
+  prefix_len=3: toyota-unique cover  43.5% | nissan-unique cover  51.3%
+  prefix_len=4: toyota-unique cover  62.1% | nissan-unique cover  71.1%
+  prefix_len=5: toyota-unique cover  79.2% | nissan-unique cover  88.2%
+  prefix_len=6: toyota-unique cover  92.8% | nissan-unique cover  96.4%
+
+DONE

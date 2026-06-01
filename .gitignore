@@ -14,3 +14,8 @@ __pycache__/
 # Generated output
 output/
 *.meta.json
+
+# Large generated 1M-corpus label files — regenerable via the pipeline,
+# exceed GitHub's 100MB file limit. Keep them local-only.
+Main/Phase#2/Data/processed/1M_parts_numbers_labeled.csv
+Main/Phase#2/Data/processed/1M_parts_numbers_labeled_topbfm.csv

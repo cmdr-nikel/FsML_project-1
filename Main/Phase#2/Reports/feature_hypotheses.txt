@@ -1,0 +1,53 @@
+========================================================================
+HYP 1: HONDA trailing-letter suffix (ZA/ZZ/ZP...) — discriminative?
+========================================================================
+  toyota      ends 2 letters:   2.4%   ends Z+letter:   0.2%
+  honda       ends 2 letters:  25.0%   ends Z+letter:  21.5%
+  nissan      ends 2 letters:   4.2%   ends Z+letter:   0.0%
+  mitsubishi  ends 2 letters:   3.8%   ends Z+letter:   0.0%
+  bmw         ends 2 letters:   0.0%   ends Z+letter:   0.0%
+  vag         ends 2 letters:  35.7%   ends Z+letter:   0.9%
+  mercedes    ends 2 letters:   0.0%   ends Z+letter:   0.0%
+
+========================================================================
+HYP 2: length as separator
+========================================================================
+  toyota      len  min= 6 p10= 10 p50= 10 p90= 13 max=15
+  honda       len  min= 4 p10= 11 p50= 11 p90= 13 max=15
+  nissan      len  min= 5 p10=  9 p50= 10 p90= 10 max=48
+  mitsubishi  len  min= 2 p10=  8 p50=  8 p90= 15 max=17
+  bmw         len  min=11 p10= 11 p50= 11 p90= 11 max=11
+  vag         len  min= 6 p10=  9 p50= 11 p90= 14 max=14
+  mercedes    len  min=11 p10= 11 p50= 15 p90= 15 max=17
+
+========================================================================
+HYP 3: NISSAN pure-short-digit (<=8 digits) — leaks to <none>?
+========================================================================
+  toyota      pure 5-8 digits:   0.0%
+  honda       pure 5-8 digits:   0.3%
+  nissan      pure 5-8 digits:   2.9%
+  mitsubishi  pure 5-8 digits:   0.0%
+  bmw         pure 5-8 digits:   0.0%
+  vag         pure 5-8 digits:   0.0%
+  mercedes    pure 5-8 digits:   0.0%
+
+========================================================================
+HYP 4: char composition — letters in MIDDLE vs end
+========================================================================
+  toyota      has letters in core(2:-2):  28.9%
+  honda       has letters in core(2:-2):  87.1%
+  nissan      has letters in core(2:-2):  87.0%
+  mitsubishi  has letters in core(2:-2):   9.7%
+  bmw         has letters in core(2:-2):   1.8%
+  vag         has letters in core(2:-2):  56.9%
+  mercedes    has letters in core(2:-2):  40.9%
+
+========================================================================
+HYP 5: position of FIRST letter (honda: pos5; nissan: varies)
+========================================================================
+  toyota      first-letter-position: pos-1:58%, pos6:12%, pos10:11%, pos0:10%, pos7:5%
+  honda       first-letter-position: pos5:75%, pos-1:10%, pos2:5%, pos4:3%, pos11:2%
+  nissan      first-letter-position: pos6:28%, pos5:25%, pos7:21%, pos0:13%, pos-1:10%
+  mitsubishi  first-letter-position: pos0:82%, pos-1:10%, pos4:7%, pos5:1%, pos3:0%
+
+DONE

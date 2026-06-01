@@ -14,6 +14,11 @@ from Scripts.models.paths import (
 from Scripts.models.validator import validate_article
 
 _FLAG_WEIGHT = float(os.getenv("TOPBFM_FLAG_WEIGHT", "5.0"))
+# MUST match train_topbfm.build_features: up-weight the trailing 4 generic
+# discriminators (num_letters, first_letter_pos, ends_z_letter, ends_two_letters)
+# by the same factor used at training, or inference features won't match the model.
+_DISC_WEIGHT = float(os.getenv("TOPBFM_DISC_WEIGHT", "3.0"))
+_N_DISCRIMINATORS = 4
 
 
 def load_models():
@@ -55,6 +60,8 @@ def process_huge_file(input_file, embedder, bfm, scaler, output_file=None, confi
             gen   = get_generic_features(arts)
             core  = np.hstack([emb, gen])
             scaled_core = scaler.transform(core)
+            if _DISC_WEIGHT != 1.0:
+                scaled_core[:, -_N_DISCRIMINATORS:] *= _DISC_WEIGHT
             flags = get_brand_flags(arts) * _FLAG_WEIGHT
             scaled_core = np.hstack([scaled_core, flags])
 

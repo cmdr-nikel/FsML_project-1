@@ -10,7 +10,7 @@ The task: reconstruct brand identity from the part number string alone.
 The project runs in two phases. Phase#1 was a focused binary experiment. Phase#2 is the full system, built around two models that cooperate in sequence — one supervised and rule-anchored, one unsupervised and geometry-driven — connected through a teacher-student data pipeline inspired by work in Graph Signal Processing.
 
 ### Multi-brand Classification · LinearSVC × TopBFM · Teacher-Student Pipeline
-> *A machine learning pipeline that reads raw automotive part number strings and assigns each one a manufacturer brand — Mercedes-Benz, BMW, VAG, or unknown — across a corpus of one million articles, with no catalogue context and no barcode.*
+> *A machine learning pipeline that reads raw automotive part number strings and assigns each one a manufacturer brand — Mercedes-Benz, BMW, VAG, Toyota, Honda, Nissan, Mitsubishi, or unknown — across a corpus of one million articles, with no catalogue context and no barcode.*
 
 ---
 
@@ -50,17 +50,26 @@ FsML_project-1/
 ## Dataset
 
 - **Source:** proprietary parts catalogue — ~1 million raw article numbers
-- **Known brands:** Mercedes-Benz · BMW · VAG (Volkswagen Group)
-- **Training size per class:** 300k articles, balanced
+- **Known brands:** Mercedes-Benz · BMW · VAG (Volkswagen Group) · Toyota · Honda · Nissan · Mitsubishi
+- **Training size per class:** 300k articles, balanced (capped at availability — Mitsubishi ≈206k)
 - **Split:** 60 / 20 / 20 train / val / test, stratified
+- **Normalization:** articles are uppercased and **dash-stripped** — Honda (~96 %) and Nissan
+  (~57 %) carry dashes at source, while the 1M inference corpus is dash-free.
 
 | File                        | Contents                                    |
 |-----------------------------|---------------------------------------------|
 | `mercedes-benz 300k.txt`    | Mercedes-Benz part numbers                  |
 | `BMW 300k.csv`              | BMW part numbers with alternative codes     |
 | `VAG 300k.csv`              | VAG part numbers                            |
+| `toyota.csv`                | Toyota part numbers (`,` · header · col 1)   |
+| `honda.csv`                 | Honda part numbers (`,` · no header · col 1) |
+| `Auvika_MITSUBISHI.csv`     | Mitsubishi part numbers (`;` · no header · col 1) |
+| `Price NISSAN_AE.txt`       | Nissan price list (tab · header+BOM · col 1) |
 | `1M_parts_numbers.csv`      | Full unlabelled corpus for inference        |
 | `giga_mixed_train_600k.csv` | Extended mixed training set (legacy)        |
+
+Japanese-brand part-number architecture (PNC / platform / section / mnemonic prefixes) and the
+per-brand regex cores are documented in the `TMDH` research report at the repo root.
 
 ---
 
@@ -93,9 +102,13 @@ character-level pattern flags, brand-specific prefix rules, length and digit-rat
 These features are deliberately interpretable and rule-like, which makes the model precise and
 fast — but rigid, since it can only work with what the rules capture.
 
-A `CalibratedClassifierCV` wrapper adds probability estimates.  Articles whose top-class
-confidence falls below **0.85** receive `manual_check` instead of a brand label — they are
-genuine borderline cases and are excluded from everything downstream.
+A `CalibratedClassifierCV` wrapper adds probability estimates: the SVM is fit **once**, then
+calibrated on a held-out slice via `FrozenEstimator` — not a 3-fold refit.  Together with
+`dual=False`, `tol=1e-3` and `float32` feature matrices, this keeps a full retrain on ~2.2M
+articles at **~10 minutes** end-to-end (down from 10+ hours — the old `cv=3` calibration tripled
+the data in memory and thrashed swap).  Articles whose top-class confidence falls below **0.85**
+receive `manual_check` instead of a brand label — they are genuine borderline cases and are
+excluded from everything downstream.
 
 The teacher's primary job is not its own final output.  It is to **label the 1M corpus** so
 that the student has high-quality training data for the hardest class.
@@ -109,24 +122,40 @@ that the student has high-quality training data for the hardest class.
 TopBFM is a **MiniBatchKMeans clustering model** with a purity-based label assignment scheme.
 It operates on brand-agnostic embeddings rather than hand-crafted rules:
 
-- `ArticleEmbedder` — character-level embedding of the part number string
-- Generic numeric features: `len`, `digit_ratio`
-- Brand-flag features appended *after* scaling (multiplied by ×5) so `StandardScaler` doesn't
-  neutralise the brand identity signal
+- `ArticleEmbedder` — character-level embedding of the part number string (char TF-IDF 2–4 → SVD 100)
+- Generic numeric features: `len`, `digit_ratio`, plus 4 positional discriminators mirrored from
+  the teacher's `atomar.py` — `num_letters`, `first_letter_pos`, `ends_z_letter`, `ends_two_letters`.
+  These are up-weighted (`TOPBFM_DISC_WEIGHT`, ×3) after scaling so they aren't drowned by the
+  100-dim embedding.  They separate honda (Z-suffix, two-letter ending) from nissan (a single
+  embedded letter) — structure that char n-grams alone could not, which is why the student
+  previously collapsed honda/nissan into `manual_check`.
+- Brand-flag features appended *after* scaling (multiplied by `TOPBFM_FLAG_WEIGHT`, ×8) so
+  `StandardScaler` doesn't neutralise the brand identity signal
 
-Each cluster is assigned the dominant label only if its **purity ≥ 0.92** — impure clusters
-are labelled `manual_check`, not forced into a brand.  At 550 clusters for 4 classes the model
+Each cluster is assigned the dominant label only if its **purity ≥ 0.80** — impure clusters
+are labelled `manual_check`, not forced into a brand.  At 1750 clusters for 8 classes the model
 learns the fine-grained geometric structure of each brand's part number space.
 
-**Latest run — 2026-05-15, n_clusters=550, purity_threshold=0.92:**
+**Latest run — 2026-06-01, n_clusters=1750, purity_threshold=0.80, disc_weight=3.0:**
 
 | Class             | Precision | Recall | F1       | Support |
 |-------------------|-----------|--------|----------|---------|
-| `bmw`             | 1.00      | 0.95   | **0.97** | 120 000 |
-| `mercedes`        | 0.99      | 0.98   | **0.99** | 120 000 |
-| `unknown_article` | 0.98      | 0.93   | **0.96** | 120 000 |
-| `vag`             | 0.99      | 0.93   | **0.96** | 120 000 |
-| **accuracy**      | —         | —      | **0.95** | 480 000 |
+| `mercedes`        | 0.99      | 0.99   | **0.99** | 120 000 |
+| `mitsubishi`      | 1.00      | 0.92   | **0.96** | 82 594  |
+| `vag`             | 0.97      | 0.90   | **0.94** | 120 000 |
+| `bmw`             | 0.94      | 0.93   | **0.93** | 120 000 |
+| `unknown_article` | 0.90      | 0.89   | **0.89** | 114 715 |
+| `toyota`          | 0.96      | 0.74   | **0.84** | 120 000 |
+| `honda`           | 0.94      | 0.42   | **0.59** | 120 000 |
+| `nissan`          | 0.91      | 0.30   | **0.45** | 120 000 |
+| **accuracy**      | —         | —      | **0.76** | 917 309 |
+
+honda/nissan recall is the open frontier: their part numbers are the least structured of the
+Japanese brands.  Injecting + weighting the positional discriminators lifted honda F1 0.42 → 0.59
+and nissan 0.40 → 0.45, cut the real `nissan → vag` mislabel leak 10.7% → 6.6%, and dropped overall
+`manual_check` on the 1M corpus 28.6% → 24.5% — all **without** lowering the purity threshold, i.e.
+no accuracy traded for coverage.  High precision (0.91–0.94) with low recall means the student is
+conservative by design: when it commits to honda/nissan it is almost always right.
 
 ### The Teacher-Student Link
 
@@ -194,12 +223,21 @@ python run_pipeline.py --only 6
 **Tuning knobs:**
 
 ```bash
-# Stricter cluster purity → more manual_check, fewer borderline brand assignments
-TOPBFM_PURITY_THRESHOLD=0.95 python .../train_topbfm.py
+# Cluster purity gate. Higher → more manual_check, fewer borderline brand assignments;
+# lower → fewer manual_check at the cost of accuracy on the "rescued" articles.
+TOPBFM_PURITY_THRESHOLD=0.80 python .../train_topbfm.py
 
 # Stronger brand-flag signal in the TopBFM feature space
 TOPBFM_FLAG_WEIGHT=8.0 python .../train_topbfm.py
+
+# Weight on the 4 positional discriminators (num_letters, first_letter_pos, ends_z_letter,
+# ends_two_letters) so they aren't drowned by the 100-dim char embedding.
+TOPBFM_CLUSTERS_PER_CLASS=200 TOPBFM_DISC_WEIGHT=3.0 python .../train_topbfm.py
 ```
+
+> **Note:** the proven configuration is `PURITY=0.80 FLAG_WEIGHT=8.0 CLUSTERS_PER_CLASS=200
+> DISC_WEIGHT=3.0`.  The in-code defaults differ (`purity=0.92`, `flag_weight=5.0`) — pass the
+> env vars to reproduce the model in the table above.
 
 ---
 
@@ -210,7 +248,7 @@ Both models produce a labeled CSV with the same columns:
 | Column    | Values                                                          |
 |-----------|-----------------------------------------------------------------|
 | `article` | Normalised, uppercased part number                             |
-| `label`   | `mercedes` · `bmw` · `vag` · `unknown_article` · `manual_check` |
+| `label`   | `mercedes` · `bmw` · `vag` · `toyota` · `honda` · `nissan` · `mitsubishi` · `unknown_article` · `manual_check` |
 | `*_prob`  | Per-brand confidence score                                      |
 | `comment` | Human-readable confidence note                                  |
 
@@ -222,12 +260,17 @@ Both models need to know about the new brand — they load data independently.
 
 1. Drop the brand dataset into `Data/original/`.
 2. Register it in `Scripts/data/loads.py` → `load_all()` — this feeds **LinearSVC**.
+   Note the source format (separator, header, article column index) — they vary per file.
 3. Register it in `Scripts/pipeline/train_topbfm.py` → `load_data()` — this feeds **TopBFM**.
-4. Re-run `--full`.
-5. Optionally extend `Scripts/features/brand_rules.py` with brand-specific pattern rules.
+4. Add a rule in `Scripts/features/brand_rules.py` **and** a numeric-only
+   `_extract_<brand>_features` extractor in `Scripts/features/atomar.py` (wired into
+   `extract_features`).
+5. Re-run `--full`. The teacher (LinearSVC) relabels the 1M corpus first, regenerating a
+   clean `unknown_for_training.csv`; only then does the student (TopBFM) train.
 
 The core embedding path is brand-agnostic by design — brand identity lives in the flag layer,
-not baked into the feature extractor.
+not baked into the feature extractor. All article text is normalised via `loads._normalize`
+(uppercase + dash removal); inference mirrors this in `models/inference.py`.
 
 ---
 

@@ -6,14 +6,21 @@ import os
 
 
 class TopBFM:
-    def __init__(self, n_clusters=50, purity_threshold=0.75):
+    def __init__(self, n_clusters=50, purity_threshold=0.75, verbose=False):
         self.n_clusters = n_clusters
         self.purity_threshold = purity_threshold
+        self.verbose = verbose
         self.model = None
         self.cluster_labels = {}
 
     def fit(self, embeddings: np.ndarray) -> None:
-        self.model = MiniBatchKMeans(n_clusters=self.n_clusters, random_state=42)
+        self.model = MiniBatchKMeans(
+            n_clusters=self.n_clusters,
+            random_state=42,
+            verbose=self.verbose,
+            batch_size=2048,
+            n_init=10,
+        )
         self.model.fit(embeddings)
 
     def label_clusters(self, embeddings, true_labels) -> None:

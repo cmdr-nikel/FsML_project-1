@@ -9,7 +9,11 @@ import numpy as np
 from Scripts.features.atomar import featurize_column
 
 _PHASE2        = Path(__file__).parents[2]
-MODEL_PATH     = _PHASE2 / "Models" / "linearcvs" / "linearsvc_atom_1117k_4cls.pkl"
+# Always use the most recently trained LinearSVC bundle — NOT a hardcoded name.
+# (Hardcoding linearsvc_atom_1117k_4cls.pkl silently kept the old 3-brand teacher
+#  and broke the teacher→student chain after new brands were added.)
+_LINEARSVC_DIR = _PHASE2 / "Models" / "linearcvs"
+MODEL_PATH     = max(_LINEARSVC_DIR.glob("linearsvc_atom_*.pkl"), key=lambda p: p.stat().st_mtime)
 PROCESSED_DIR  = _PHASE2 / "Data" / "processed"
 
 CONFIDENCE_THRESHOLD = 0.85  # range 0.85-0.8 is ideal

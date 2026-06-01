@@ -8,6 +8,27 @@ VAG_PATH    = DATA_DIR / "VAG 300k.csv"
 MB_PATH     = DATA_DIR / "mercedes-benz 300k.txt"
 NOT_MB_PATH = DATA_DIR / "not mercedes-benz 300k.txt"
 
+# Japanese brands (added 2026-05). In ALL four the part number is column index 1;
+# only the separator / header presence differs.
+TOYOTA_PATH = DATA_DIR / "toyota.csv"               # ',' , header 'Brand,Article,Name'
+HONDA_PATH  = DATA_DIR / "honda.csv"                 # ',' , no header (brand,code,name)
+MITSU_PATH  = DATA_DIR / "Auvika_MITSUBISHI.csv"     # ';' , no header (brand,code,name,price,qty)
+NISSAN_PATH = DATA_DIR / "Price NISSAN_AE.txt"       # tab , header + BOM (col0='Nissan', col1='Code')
+
+SAMPLE_PER_BRAND = 300_000
+
+
+def _normalize(series: pd.Series) -> pd.Series:
+    """
+    Canonical article form shared by training and inference:
+    strip, uppercase, remove dashes.
+
+    Dash removal is required: honda (~96%) and nissan (~57%) carry dashes at
+    source, while the 1M inference corpus is 100% dash-free. Near no-op for the
+    legacy brands (bmw/vag/mb ~0% dashes).
+    """
+    return series.astype(str).str.strip().str.upper().str.replace('-', '', regex=False)
+
 
 def load_all() -> pd.DataFrame:
     """
@@ -28,10 +49,27 @@ def load_all() -> pd.DataFrame:
     mb = pd.read_csv(MB_PATH, header=None, names=['article'], dtype=str)
     mb['brand'] = 'mercedes'
 
-    df = pd.concat([bmw, vag, mb], ignore_index=True)
-    df['article'] = df['article'].str.strip().str.upper()
+    # --- Japanese brands (part number = column index 1 in every file) ---
+    toyota = pd.read_csv(TOYOTA_PATH, dtype=str, on_bad_lines='skip').iloc[:, 1].to_frame(name='article')
+    toyota['brand'] = 'toyota'
+
+    honda = pd.read_csv(HONDA_PATH, header=None, dtype=str, on_bad_lines='skip').iloc[:, 1].to_frame(name='article')
+    honda['brand'] = 'honda'
+
+    mitsu = pd.read_csv(MITSU_PATH, sep=';', header=None, dtype=str, on_bad_lines='skip').iloc[:, 1].to_frame(name='article')
+    mitsu['brand'] = 'mitsubishi'
+
+    nissan = pd.read_csv(
+        NISSAN_PATH, sep='\t', dtype=str, encoding='utf-8-sig', on_bad_lines='skip'
+    ).iloc[:, 1].to_frame(name='article')
+    nissan['brand'] = 'nissan'
+
+    df = pd.concat([bmw, vag, mb, toyota, honda, mitsu, nissan], ignore_index=True)
+    df['article'] = _normalize(df['article'])
     df = df.dropna(subset=['article'])
-    df = df[df['article'].str.strip() != '']
+    df = df[df['article'] != '']
+    # Drop non-article junk (headers / brand-name rows): every real OEM number has a digit
+    df = df[df['article'].str.contains(r'\d', regex=True)]
     df = df.drop_duplicates(subset=['article', 'brand'])
 
     cross_brand = df[df.duplicated(subset=['article'], keep=False)]
@@ -40,7 +78,14 @@ def load_all() -> pd.DataFrame:
         print(cross_brand.groupby('article')['brand'].apply(list).head(5))
 
     df = df.drop_duplicates(subset=['article'], keep='first')
-    df = df.groupby('brand').sample(n=300_000, random_state=42).reset_index(drop=True)
+    # Balance per brand; cap at availability so a short brand can't crash sample().
+    # Explicit loop (not groupby.apply): pandas>=2.2 drops the grouping column
+    # inside apply, which would silently delete 'brand'.
+    parts = [
+        g.sample(n=min(SAMPLE_PER_BRAND, len(g)), random_state=42)
+        for _, g in df.groupby('brand')
+    ]
+    df = pd.concat(parts, ignore_index=True)
     return df
 
 

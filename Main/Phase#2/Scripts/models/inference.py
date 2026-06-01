@@ -18,7 +18,9 @@ class BrandPredictor:
         self.threshold = threshold
 
     def predict_one(self, article: str) -> dict:
-        s = article.strip().upper()
+        # Dash removal keeps inference aligned with training normalization
+        # (loads._normalize): honda/nissan are dashed at source, 1M corpus is not.
+        s = article.strip().upper().replace('-', '')
         features = extract_features_from_article(s)
 
         if not features.get("any_known_pattern", 0):
@@ -51,7 +53,7 @@ class BrandPredictor:
         if not isinstance(articles, pd.Series):
             articles = pd.Series(articles)
 
-        articles = articles.str.strip().str.upper()
+        articles = articles.str.strip().str.upper().str.replace('-', '', regex=False)
 
         df = pd.DataFrame({"article": articles})
         feature_matrix = build_feature_matrix(df)

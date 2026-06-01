@@ -1,6 +1,7 @@
 import re
 import pandas as pd
 import numpy as np
+from tqdm import tqdm
 
 """
 'constructor' for the form of atomic features:
@@ -36,6 +37,54 @@ CORE_RE = re.compile(
 )
 
 NON_MB_PREFIXES = set("XZMLDJESTKVW")
+
+# --- Japanese brands (Toyota / Honda / Nissan / Mitsubishi) --- #
+# Regex cores derived from the OEM part-number research (see /TMDH report).
+# NOTE: all expect a dash-free, uppercased article — normalization strips '-'
+# before featurization (honda/nissan are heavily dashed at source, the 1M
+# inference corpus is dash-free).
+TOYOTA_GENERAL_RE = re.compile(
+    r'^(?P<pnc>\d{5})'
+    r'(?P<base>\d{5})'
+    r'(?P<suffix>[A-Z0-9]{2})?$'
+)
+TOYOTA_SUBARU_RE = re.compile(r'^SU003(?P<base>\d{5})$')
+
+HONDA_GENERAL_RE = re.compile(
+    r'^(?P<function>\d{5})'
+    r'(?=[A-Z0-9]*[A-Z])'             # tightened 2026-05-31: require >=1 LETTER after the
+                                      # function code. Real honda has letters in the middle
+                                      # (87% letters-in-core); without this, pure-digit
+                                      # toyota/bmw matched honda → flag was pure noise.
+    r'(?P<model>[A-Z0-9]{3})'
+    r'(?P<revision>[A-Z0-9]{2,6})$'   # TMDH said {3,4}; real catalog revisions run to 5-6 (e.g. A02RM, 030ZC)
+)
+HONDA_HARDWARE_RE = re.compile(
+    r'^(?P<function>9\d{4})'
+    r'(?P<dimension>\d{5})'
+    r'(?P<iso>[A-Z0-9]{2,3})?$'
+)
+
+NISSAN_GENERAL_RE = re.compile(
+    r'^(?=[A-Z0-9]*[A-Z])'           # tightened 2026-05-31: require >=1 LETTER. The old
+                                      # rule `[A-Z0-9]{10,11}` matched pure-digit toyota and
+                                      # 11-digit bmw → noise. Nissan is 87% letters-in-core;
+                                      # the ~2.9% pure-digit nissan is sacrificed for signal.
+    r'(?P<section>[A-Z0-9]{5})'
+    r'(?P<identifier>[A-Z0-9]{5,6})$'
+)
+NISSAN_HARDWARE_RE = re.compile(
+    r'^08'
+    r'(?P<part_type>\d)'
+    r'(?P<bolt_type>\d)'
+    r'(?P<mod>\d)'
+    r'(?P<diameter>\d{2})'
+    r'(?P<length>\d{2})'
+    r'(?P<finish>\d{2,3})?$'
+)
+
+MITSUBISHI_CLASSIC_RE = re.compile(r'^(?P<prefix>[A-Z]{2})(?P<core>\d{6})$')
+MITSUBISHI_MODERN_RE = re.compile(r'^(?P<prefix_num>\d{4})(?P<alpha_rev>[A-Z])(?P<core_num>\d{3})$')
 
 def _extract_generic_features(s):
     f = {}
@@ -74,6 +123,25 @@ def _extract_generic_features(s):
     f["digit_ratio"]    = num_digits / f["article_len"] if f["article_len"] > 0 else 0.0
     f["has_only_alnum"] = 1 if s.isalnum() else 0
     f["num_blocks"]     = len(re.split(r'[ \-/]', s)) if s else 0
+
+    # --- positional discriminators (added 2026-05-31 for honda/nissan separability) ---
+    # Diagnosis: honda first letter sits at pos 5 (75%), mitsubishi pos 0 (82%),
+    # toyota has no letters (58%). Position of the first letter is a strong brand signal.
+    first_letter_pos = -1
+    for i, ch in enumerate(s):
+        if ch.isalpha():
+            first_letter_pos = i
+            break
+    f["first_letter_pos"] = first_letter_pos
+
+    # honda Z-suffix (ZA/ZZ/ZP...): 21.5% of honda vs ~0% of every other brand.
+    f["ends_z_letter"] = 1 if re.search(r'Z[A-Z]$', s) else 0
+    f["ends_two_letters"] = 1 if re.search(r'[A-Z]{2}$', s) else 0
+
+    # letters strictly inside the core (excl. first/last 2 chars): honda/nissan ~87%
+    # vs toyota 29% / bmw 2% / mitsubishi 10% — separates "mixed-core JDM" from digit brands.
+    core = s[2:-2]
+    f["has_letters_in_core"] = 1 if any(ch.isalpha() for ch in core) else 0
 
     return f
 
@@ -225,6 +293,140 @@ def _extract_0000100_features(s: str) -> dict:
     f["bosch_is_valid_pattern"] = f["bosch_oem"]
     return f
 
+# --- Japanese brand extractors (numeric-only, mirror bmw/vag style) --- #
+def _extract_toyota_features(s: str) -> dict:
+    f = {}
+    f["toyota_all_digits"] = 1 if s.isdigit() else 0
+    f["toyota_is_10_digits"] = 1 if (s.isdigit() and len(s) == 10) else 0
+    f["toyota_is_12_digits"] = 1 if (s.isdigit() and len(s) == 12) else 0
+    m_gen = TOYOTA_GENERAL_RE.match(s)
+    m_col = TOYOTA_SUBARU_RE.match(s)
+    if m_col:
+        f["toyota_is_valid_pattern"] = 1
+        f["toyota_is_collab_subaru"] = 1
+        f["toyota_pnc_int"] = -1
+        f["toyota_base_int"] = int(m_col.group("base"))
+        f["toyota_has_suffix"] = 0
+        f["toyota_is_hardware"] = 0
+        f["toyota_is_remanufactured"] = 0
+    elif m_gen:
+        pnc_val = int(m_gen.group("pnc"))
+        f["toyota_is_valid_pattern"] = 1
+        f["toyota_is_collab_subaru"] = 0
+        f["toyota_pnc_int"] = pnc_val
+        f["toyota_base_int"] = int(m_gen.group("base"))
+        f["toyota_is_hardware"] = 1 if 90000 <= pnc_val <= 99999 else 0
+        suffix = m_gen.group("suffix")
+        f["toyota_has_suffix"] = 1 if suffix else 0
+        f["toyota_is_remanufactured"] = 1 if suffix == "84" else 0
+    else:
+        f["toyota_is_valid_pattern"] = 0
+        f["toyota_is_collab_subaru"] = 0
+        f["toyota_pnc_int"] = -1
+        f["toyota_base_int"] = -1
+        f["toyota_has_suffix"] = 0
+        f["toyota_is_hardware"] = 0
+        f["toyota_is_remanufactured"] = 0
+    return f
+
+
+def _extract_honda_features(s: str) -> dict:
+    f = {}
+    f["honda_all_digits"] = 1 if s.isdigit() else 0
+    m_hw = HONDA_HARDWARE_RE.match(s)
+    m_gen = HONDA_GENERAL_RE.match(s)
+    if m_hw:
+        f["honda_is_valid_pattern"] = 1
+        f["honda_is_hardware"] = 1
+        f["honda_function_int"] = int(m_hw.group("function"))
+        f["honda_is_accessory"] = 0
+        f["honda_is_right_side"] = -1
+        dim = m_hw.group("dimension")
+        f["honda_thread_mm"] = int(dim[:2])
+        f["honda_length_mm"] = int(dim[2:5])
+    elif m_gen:
+        func_val = int(m_gen.group("function"))
+        f["honda_is_valid_pattern"] = 1
+        f["honda_is_hardware"] = 0
+        f["honda_function_int"] = func_val
+        f["honda_is_accessory"] = 1 if s.startswith("08") else 0
+        f["honda_is_right_side"] = func_val % 2
+        f["honda_thread_mm"] = -1
+        f["honda_length_mm"] = -1
+    else:
+        f["honda_is_valid_pattern"] = 0
+        f["honda_is_hardware"] = 0
+        f["honda_function_int"] = -1
+        f["honda_is_accessory"] = 0
+        f["honda_is_right_side"] = -1
+        f["honda_thread_mm"] = -1
+        f["honda_length_mm"] = -1
+    return f
+
+
+def _extract_nissan_features(s: str) -> dict:
+    f = {}
+    f["nissan_all_digits"] = 1 if s.isdigit() else 0
+    f["nissan_is_10_digits"] = 1 if len(s) == 10 else 0
+    m_hw = NISSAN_HARDWARE_RE.match(s)
+    m_gen = NISSAN_GENERAL_RE.match(s)
+    if m_hw:
+        f["nissan_is_valid_pattern"] = 1
+        f["nissan_is_hardware"] = 1
+        f["nissan_fastener_type"] = int(m_hw.group("part_type"))
+        f["nissan_material_type"] = int(m_hw.group("bolt_type"))
+        f["nissan_thread_mm"] = int(m_hw.group("diameter"))
+        f["nissan_length_mm"] = int(m_hw.group("length"))
+    elif m_gen:
+        f["nissan_is_valid_pattern"] = 1
+        f["nissan_is_hardware"] = 0
+        f["nissan_fastener_type"] = -1
+        f["nissan_material_type"] = -1
+        f["nissan_thread_mm"] = -1
+        f["nissan_length_mm"] = -1
+    else:
+        f["nissan_is_valid_pattern"] = 0
+        f["nissan_is_hardware"] = 0
+        f["nissan_fastener_type"] = -1
+        f["nissan_material_type"] = -1
+        f["nissan_thread_mm"] = -1
+        f["nissan_length_mm"] = -1
+    return f
+
+
+def _extract_mitsubishi_features(s: str) -> dict:
+    f = {}
+    f["mitsubishi_is_8_chars"] = 1 if len(s) == 8 else 0
+    m_classic = MITSUBISHI_CLASSIC_RE.match(s)
+    m_modern = MITSUBISHI_MODERN_RE.match(s)
+    if m_classic:
+        prefix = m_classic.group("prefix")
+        f["mitsubishi_is_valid_pattern"] = 1
+        f["mitsubishi_is_classic"] = 1
+        f["mitsubishi_is_modern"] = 0
+        f["mitsubishi_core_int"] = int(m_classic.group("core"))
+        f["mitsubishi_is_engine_part"] = 1 if prefix == "MD" else 0
+        f["mitsubishi_is_general_part"] = 1 if prefix == "MR" else 0
+        f["mitsubishi_is_accessory"] = 1 if prefix == "MZ" else 0
+    elif m_modern:
+        f["mitsubishi_is_valid_pattern"] = 1
+        f["mitsubishi_is_classic"] = 0
+        f["mitsubishi_is_modern"] = 1
+        f["mitsubishi_core_int"] = int(m_modern.group("core_num"))
+        f["mitsubishi_is_engine_part"] = 0
+        f["mitsubishi_is_general_part"] = 0
+        f["mitsubishi_is_accessory"] = 0
+    else:
+        f["mitsubishi_is_valid_pattern"] = 0
+        f["mitsubishi_is_classic"] = 0
+        f["mitsubishi_is_modern"] = 0
+        f["mitsubishi_core_int"] = -1
+        f["mitsubishi_is_engine_part"] = 0
+        f["mitsubishi_is_general_part"] = 0
+        f["mitsubishi_is_accessory"] = 0
+    return f
+
+
 def extract_features(s: str) -> dict:
     """
     Orchestrator - main entry point.
@@ -242,6 +444,10 @@ def extract_features(s: str) -> dict:
     f.update(_extract_045_features(s))
     f.update(_extract_316_features(s))
     f.update(_extract_0000100_features(s))
+    f.update(_extract_toyota_features(s))
+    f.update(_extract_honda_features(s))
+    f.update(_extract_nissan_features(s))
+    f.update(_extract_mitsubishi_features(s))
 
 
 
@@ -283,8 +489,10 @@ def featurize_column(series: pd.Series) -> pd.DataFrame:
     """
     Applies extract_features to an entire pandas Series of article strings.
     Returns a DataFrame where each row is one article's feature vector.
+    Optimized for memory.
     """
-    return series.apply(extract_features).apply(pd.Series)
+    records = [extract_features(s) for s in tqdm(series, desc=f"Featurizing {len(series)} articles")]
+    return pd.DataFrame.from_records(records, index=series.index)
 
 
 # --- Public API aliases (used by inference.py) ---

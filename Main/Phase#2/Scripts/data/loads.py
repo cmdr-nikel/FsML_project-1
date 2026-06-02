@@ -15,6 +15,16 @@ HONDA_PATH  = DATA_DIR / "honda.csv"                 # ',' , no header (brand,co
 MITSU_PATH  = DATA_DIR / "Auvika_MITSUBISHI.csv"     # ';' , no header (brand,code,name,price,qty)
 NISSAN_PATH = DATA_DIR / "Price NISSAN_AE.txt"       # tab , header + BOM (col0='Nissan', col1='Code')
 
+# French brands (added 2026-06). Unusual formats vs the rest:
+#   PC_PATH      — TAB, no header, 13 cols; brand col0='Peugeot-Citroen' (one
+#                  source label for both marques — shared PSA numbering), article
+#                  = col1 (duplicated in col11). Treated as a single class.
+#   RENAULT_PATH — XLSX (the project's first spreadsheet source), sheet
+#                  'UAE_RENAULT_3', header row; article = column 'OEM'.
+PC_PATH      = DATA_DIR / "0000b96d56472a4f23fb4f214cc31d4084.txt"
+RENAULT_PATH = DATA_DIR / "FpzY7aeLYoCxx2uE.xlsx.xlsx"
+RENAULT_SHEET = "UAE_RENAULT_3"
+
 SAMPLE_PER_BRAND = 300_000
 
 
@@ -64,7 +74,21 @@ def load_all() -> pd.DataFrame:
     ).iloc[:, 1].to_frame(name='article')
     nissan['brand'] = 'nissan'
 
-    df = pd.concat([bmw, vag, mb, toyota, honda, mitsu, nissan], ignore_index=True)
+    # --- French brands ---
+    # Peugeot-Citroen: TAB-separated, no header, article = col 1.
+    pc = pd.read_csv(
+        PC_PATH, sep='\t', header=None, dtype=str,
+        keep_default_na=False, on_bad_lines='skip'
+    ).iloc[:, 1].to_frame(name='article')
+    pc['brand'] = 'peugeot_citroen'
+
+    # Renault: XLSX, article in the 'OEM' column.
+    renault = pd.read_excel(
+        RENAULT_PATH, sheet_name=RENAULT_SHEET, header=0, dtype=str
+    )['OEM'].to_frame(name='article')
+    renault['brand'] = 'renault'
+
+    df = pd.concat([bmw, vag, mb, toyota, honda, mitsu, nissan, pc, renault], ignore_index=True)
     df['article'] = _normalize(df['article'])
     df = df.dropna(subset=['article'])
     df = df[df['article'] != '']

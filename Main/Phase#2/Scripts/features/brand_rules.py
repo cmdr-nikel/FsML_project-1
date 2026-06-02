@@ -8,6 +8,8 @@ from Scripts.features.atomar import (
     HONDA_GENERAL_RE, HONDA_HARDWARE_RE,
     NISSAN_GENERAL_RE, NISSAN_HARDWARE_RE,
     MITSUBISHI_CLASSIC_RE, MITSUBISHI_MODERN_RE,
+    RENAULT_ALLIANCE_RE, RENAULT_CLASSIC_RE,
+    PSA_LONG_RE, PSA_SHORT_RE,
 )
 
 # Brand detection rules: {label: callable(article_str) -> bool}
@@ -25,4 +27,6 @@ BRAND_RULES = {
     "honda":      lambda x: bool(HONDA_GENERAL_RE.match(str(x)) or HONDA_HARDWARE_RE.match(str(x))),
     "nissan":     lambda x: bool(NISSAN_GENERAL_RE.match(str(x)) or NISSAN_HARDWARE_RE.match(str(x))),
     "mitsubishi": lambda x: bool(MITSUBISHI_CLASSIC_RE.match(str(x)) or MITSUBISHI_MODERN_RE.match(str(x))),
+    "renault":         lambda x: bool(RENAULT_ALLIANCE_RE.match(str(x)) or RENAULT_CLASSIC_RE.match(str(x))),
+    "peugeot_citroen": lambda x: bool(PSA_LONG_RE.match(str(x)) or PSA_SHORT_RE.match(str(x))),
 }

@@ -86,6 +86,41 @@ NISSAN_HARDWARE_RE = re.compile(
 MITSUBISHI_CLASSIC_RE = re.compile(r'^(?P<prefix>[A-Z]{2})(?P<core>\d{6})$')
 MITSUBISHI_MODERN_RE = re.compile(r'^(?P<prefix_num>\d{4})(?P<alpha_rev>[A-Z])(?P<core_num>\d{3})$')
 
+# --- French brands (Renault / Peugeot-Citroën — PSA/Stellantis) --- 2026-06-02 #
+# Cores VALIDATED against Data/original French source files. A supplied OEM doc
+# had the right ideas but wrong prefixes — corrected from the data:
+#   * PSA long 10-digit is dominated by prefix '16' (161k of 611k), NOT '96/98'
+#     as the doc claimed (98≈48k, 96≈6k). All three kept.
+#   * Renault classic 10-digit uses directories 77/82/85/86/60 (98% of renault
+#     D10), NOT just the doc's '77/82/16'.
+# Like the JP brands: these expect a dash-free, uppercased article.
+#
+# Renault Alliance: 9 digits + single trailing letter. ~98% of that letter is
+# 'R' — the Alliance catalog marker that distinguishes a Renault part from the
+# Nissan root it shares (covers 46% of renault, essentially brand-exclusive: no
+# pure-digit brand carries a trailing letter on a 9-digit core). This is the
+# clean separable signal, the French analogue of honda's Z-suffix.
+RENAULT_ALLIANCE_RE = re.compile(
+    r'^(?P<group>\d{3})(?P<category>\d{3})(?P<spec>\d{3})(?P<marker>[A-Z])$'
+)
+# Renault classic 10-digit. Directory prefix CONSTRAINED to the observed set
+# (covers 98% of renault D10). Unconstrained \d{10} would be pure noise — toyota
+# is 47% D10; these 5 prefixes hit only 7% of toyota's D10.
+RENAULT_CLASSIC_RE = re.compile(
+    r'^(?P<directory>77|82|85|86|60)(?P<subgroup>\d{2})(?P<ident>\d{6})$'
+)
+
+# PSA long 10-digit: generation prefix (16 dominant / 96 / 98) + 6-digit drawing
+# id + 2-digit state suffix (usually 80). The '16/96/98' constraint cuts toyota
+# D10 collision to 2.4%.
+PSA_LONG_RE = re.compile(
+    r'^(?P<prefix>16|96|98)(?P<ident>\d{6})(?P<suffix>\d{2})$'
+)
+# PSA classic short: 4-digit group + 2-char suffix (e.g. 1109AY, 161809, 6464FS).
+PSA_SHORT_RE = re.compile(
+    r'^(?P<group>\d{4})(?P<suffix>[A-Z0-9]{2})$'
+)
+
 def _extract_generic_features(s):
     f = {}
 
@@ -142,6 +177,21 @@ def _extract_generic_features(s):
     # vs toyota 29% / bmw 2% / mitsubishi 10% — separates "mixed-core JDM" from digit brands.
     core = s[2:-2]
     f["has_letters_in_core"] = 1 if any(ch.isalpha() for ch in core) else 0
+
+    # --- hybrid positional letter mask (added 2026-06-02 for honda/nissan + french) ---
+    # A 2nd OEM doc proposed a full 11-pos letter mask claiming nissan letters live
+    # at pos 9-10 vs honda 6-8. Data DISPROVED that (nissan letters are at pos 5-7,
+    # 95%, on top of honda). So instead of the full vector we keep only the positions
+    # the data shows as actually discriminative (absolute P(letter), native length):
+    #   pos5: honda 85% vs nissan 32%   (honda first-block marker)
+    #   pos8: honda(11ch) 39% vs nissan(10ch) 3%  (honda marker)
+    #   pos9: honda(11ch) 3% vs nissan(10ch) 43%  (nissan end marker)
+    # pos6/7 kept as the transition zone. Combined with article_len (10 vs 11) this
+    # lets the model use word geometry. has_alpha_in_last3 is the length-invariant
+    # version of the end-marker (nissan/renault carry it, honda's letters sit mid).
+    for i in (5, 6, 7, 8, 9):
+        f[f"letterpos_{i}"] = 1 if (len(s) > i and s[i].isalpha()) else 0
+    f["has_alpha_in_last3"] = 1 if any(ch.isalpha() for ch in s[-3:]) else 0
 
     return f
 
@@ -427,6 +477,58 @@ def _extract_mitsubishi_features(s: str) -> dict:
     return f
 
 
+def _extract_renault_features(s: str) -> dict:
+    f = {}
+    # Brand-exclusive marker: 9-digit core + trailing 'R' (Alliance catalog tag).
+    f["renault_ends_R"] = 1 if (len(s) >= 10 and s[-1] == "R" and s[:-1].isdigit()) else 0
+    m_all = RENAULT_ALLIANCE_RE.match(s)
+    m_cls = RENAULT_CLASSIC_RE.match(s)
+    if m_all:
+        f["renault_is_valid_pattern"] = 1
+        f["renault_is_alliance"] = 1
+        f["renault_is_classic"] = 0
+        f["renault_group_int"] = int(m_all.group("group"))
+        f["renault_marker_is_R"] = 1 if m_all.group("marker") == "R" else 0
+    elif m_cls:
+        f["renault_is_valid_pattern"] = 1
+        f["renault_is_alliance"] = 0
+        f["renault_is_classic"] = 1
+        f["renault_group_int"] = int(m_cls.group("directory"))
+        f["renault_marker_is_R"] = 0
+    else:
+        f["renault_is_valid_pattern"] = 0
+        f["renault_is_alliance"] = 0
+        f["renault_is_classic"] = 0
+        f["renault_group_int"] = -1
+        f["renault_marker_is_R"] = 0
+    return f
+
+
+def _extract_psa_features(s: str) -> dict:
+    f = {}
+    # 8-digit length is itself a PSA lean (33% of peugeot_citroen; renault is
+    # strictly 10, JP mostly 10+) — kept as a standalone numeric signal.
+    f["psa_is_8digit"] = 1 if (len(s) == 8 and s.isdigit()) else 0
+    m_long = PSA_LONG_RE.match(s)
+    m_short = PSA_SHORT_RE.match(s)
+    if m_long:
+        f["psa_is_valid_pattern"] = 1
+        f["psa_is_long"] = 1
+        f["psa_is_short"] = 0
+        f["psa_prefix_int"] = int(m_long.group("prefix"))
+    elif m_short:
+        f["psa_is_valid_pattern"] = 1
+        f["psa_is_long"] = 0
+        f["psa_is_short"] = 1
+        f["psa_prefix_int"] = int(m_short.group("group"))
+    else:
+        f["psa_is_valid_pattern"] = 0
+        f["psa_is_long"] = 0
+        f["psa_is_short"] = 0
+        f["psa_prefix_int"] = -1
+    return f
+
+
 def extract_features(s: str) -> dict:
     """
     Orchestrator - main entry point.
@@ -448,6 +550,8 @@ def extract_features(s: str) -> dict:
     f.update(_extract_honda_features(s))
     f.update(_extract_nissan_features(s))
     f.update(_extract_mitsubishi_features(s))
+    f.update(_extract_renault_features(s))
+    f.update(_extract_psa_features(s))
 
 
 

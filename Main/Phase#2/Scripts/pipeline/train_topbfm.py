@@ -25,7 +25,8 @@ _PHASE2       = Path(__file__).parents[2]
 _UNKNOWN_PATH = _PHASE2 / "Data" / "processed" / "unknown_for_training.csv"
 _N_PER_CLASS  = 300_000
 
-BRANDS = ["bmw", "honda", "mercedes", "nissan", "toyota", "vag", "mitsubishi"]
+BRANDS = ["bmw", "honda", "mercedes", "nissan", "toyota", "vag", "mitsubishi",
+          "renault", "peugeot_citroen"]
 tqdm.pandas()
 
 
@@ -55,12 +56,16 @@ def load_data():
     mitsu = pd.read_csv(DATA_DIR / "Auvika_MITSUBISHI.csv", sep=";", header=None, dtype=str, on_bad_lines="skip").iloc[:, 1].to_frame(name="article").assign(brand="mitsubishi")
     nissan = pd.read_csv(DATA_DIR / "Price NISSAN_AE.txt", sep="\t", dtype=str, encoding="utf-8-sig", on_bad_lines="skip").iloc[:, 1].to_frame(name="article").assign(brand="nissan")
 
+    # --- French brands (PC: TAB no-header, art=col1 · Renault: XLSX, art='OEM') ---
+    pc = pd.read_csv(DATA_DIR / "0000b96d56472a4f23fb4f214cc31d4084.txt", sep="\t", header=None, dtype=str, keep_default_na=False, on_bad_lines="skip").iloc[:, 1].to_frame(name="article").assign(brand="peugeot_citroen")
+    renault = pd.read_excel(DATA_DIR / "FpzY7aeLYoCxx2uE.xlsx.xlsx", sheet_name="UAE_RENAULT_3", header=0, dtype=str)["OEM"].to_frame(name="article").assign(brand="renault")
+
     unknown = pd.read_csv(
         _UNKNOWN_PATH, dtype=str,
     ).sample(n=_N_PER_CLASS, random_state=42).assign(brand="unknown_article")
 
     df = pd.concat(
-        [mb, bmw, vag, toyota, honda, mitsu, nissan, unknown], ignore_index=True
+        [mb, bmw, vag, toyota, honda, mitsu, nissan, pc, renault, unknown], ignore_index=True
     ).dropna(subset=["article"])
     df["article"] = _normalize(df["article"])
     df = df[df["article"].str.contains(r"\d", regex=True)]
@@ -78,9 +83,10 @@ def load_data():
 
 
 # Number of trailing get_generic_features columns that are positional brand
-# discriminators (num_letters, first_letter_pos, ends_z_letter, ends_two_letters).
+# discriminators: num_letters, first_letter_pos, ends_z_letter, ends_two_letters,
+# letterpos_5..9, has_alpha_in_last3 (hybrid mask added 2026-06-02).
 # The leading 2 (len, digit_ratio) are NOT discriminators and stay unweighted.
-N_DISCRIMINATORS = 4
+N_DISCRIMINATORS = 10
 
 
 def build_features(articles, embedder, scaler, fit=False, flag_weight=5.0, disc_weight=3.0):

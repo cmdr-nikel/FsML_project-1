@@ -33,10 +33,20 @@ def get_generic_features(article_list):
         rows.append([
             n,                                       # len
             num_digits / n if n > 0 else 0.0,        # digit_ratio
+            # --- discriminators (trailing block, up-weighted by disc_weight) ---
             num_letters,                             # num_letters
             first_letter_pos,                        # first_letter_pos
             1 if re.search(r'Z[A-Z]$', s) else 0,    # ends_z_letter  (honda marker)
             1 if re.search(r'[A-Z]{2}$', s) else 0,  # ends_two_letters (honda marker)
+            # hybrid positional mask (2026-06-02) — mirrors atomar.py; only the
+            # data-discriminative positions: pos5 honda-marker, pos8 honda, pos9
+            # nissan. See [[french-brands-integration]] / [[teacher-student-feature-split]].
+            1 if (n > 5 and s[5].isalpha()) else 0,  # letterpos_5
+            1 if (n > 6 and s[6].isalpha()) else 0,  # letterpos_6
+            1 if (n > 7 and s[7].isalpha()) else 0,  # letterpos_7
+            1 if (n > 8 and s[8].isalpha()) else 0,  # letterpos_8
+            1 if (n > 9 and s[9].isalpha()) else 0,  # letterpos_9
+            1 if any(ch.isalpha() for ch in s[-3:]) else 0,  # has_alpha_in_last3
         ])
     return np.asarray(rows, dtype=float)
 

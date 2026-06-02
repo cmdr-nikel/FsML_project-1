@@ -18,7 +18,9 @@ _FLAG_WEIGHT = float(os.getenv("TOPBFM_FLAG_WEIGHT", "5.0"))
 # discriminators (num_letters, first_letter_pos, ends_z_letter, ends_two_letters)
 # by the same factor used at training, or inference features won't match the model.
 _DISC_WEIGHT = float(os.getenv("TOPBFM_DISC_WEIGHT", "3.0"))
-_N_DISCRIMINATORS = 4
+# MUST match train_topbfm.N_DISCRIMINATORS (trailing gen cols: 4 original +
+# letterpos_5..9 + has_alpha_in_last3 = 10, hybrid mask 2026-06-02).
+_N_DISCRIMINATORS = 10
 
 
 def load_models():

@@ -21,6 +21,7 @@ import pandas as pd
 from Scripts.data.loads import (
     _normalize, BMW_PATH, VAG_PATH, MB_PATH,
     TOYOTA_PATH, HONDA_PATH, MITSU_PATH, NISSAN_PATH,
+    PC_PATH, RENAULT_PATH, RENAULT_SHEET,
 )
 from Scripts.features.brand_rules import BRAND_RULES
 
@@ -48,6 +49,12 @@ def _load_brand(brand):
     elif brand == "nissan":
         s = pd.read_csv(NISSAN_PATH, sep="\t", dtype=str, encoding="utf-8-sig",
                         on_bad_lines="skip").iloc[:, 1]
+    elif brand == "peugeot_citroen":
+        s = pd.read_csv(PC_PATH, sep="\t", header=None, dtype=str,
+                        keep_default_na=False, on_bad_lines="skip").iloc[:, 1]
+    elif brand == "renault":
+        s = pd.read_excel(RENAULT_PATH, sheet_name=RENAULT_SHEET, header=0,
+                          dtype=str)["OEM"]
     s = _normalize(s)
     s = s[s.str.contains(r"\d", regex=True)].drop_duplicates()
     return s

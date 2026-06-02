@@ -41,7 +41,18 @@ class TopBFM:
             distribution = {k: v / total for k, v in counter.items()}
             top_label, top_count = counter.most_common(1)[0]
             purity = top_count / total
-            final_label = top_label if purity >= self.purity_threshold else "manual_check"
+            # The purity gate guards BRAND clusters (where mixing = real misclass risk).
+            # unknown_article is a heterogeneous catch-all (many unseen brands lumped
+            # together), so a low-purity cluster whose plurality is unknown is STILL
+            # legitimately unknown — demoting it to manual_check buried ~14pt of genuine
+            # unknowns (diagnosis 2026-06-02: 39% of manual_check had unknown as plurality,
+            # while teacher independently called 47.9% unknown). Keep such clusters unknown.
+            if purity >= self.purity_threshold:
+                final_label = top_label
+            elif top_label == "unknown_article":
+                final_label = "unknown_article"
+            else:
+                final_label = "manual_check"
 
             self.cluster_labels[cid] = {
                 "label": final_label,
